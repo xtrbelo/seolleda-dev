@@ -7,7 +7,6 @@ import CheckoutLayout from "./layouts/CheckoutLayout";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
 import AdminLoginPage from "./pages/AdminLoginPage";
 import {
-  ProductsPage,
   ReportsPage,
   SalesPage,
   SettingsPage,
@@ -15,6 +14,7 @@ import {
 } from "./pages/AdminPages";
 import CheckoutPage from "./pages/CheckoutPage";
 import CategoriesPage from "./pages/CategoriesPage";
+import ProductsPage from "./pages/ProductsPage";
 
 function App() {
   return (

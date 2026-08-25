@@ -374,6 +374,126 @@
   color: #28554c;
 }
 
+.products-page {
+  max-width: 1200px;
+}
+
+.products-heading {
+  align-items: flex-end;
+}
+
+.products-heading .eyebrow,
+.products-heading h1 {
+  margin-left: 0;
+}
+
+.products-heading p {
+  color: #66736c;
+  font-size: 1.05rem;
+}
+
+.products-toolbar {
+  align-items: center;
+  display: flex;
+  gap: 14px;
+  justify-content: flex-end;
+  margin: 28px 0 14px;
+}
+
+.products-toolbar label {
+  color: #66736c;
+  font-size: 0.85rem;
+}
+
+.products-toolbar input {
+  border: 1px solid #cbd8ce;
+  border-radius: 8px;
+  color: #26352f;
+  font: inherit;
+  max-width: 310px;
+  padding: 10px 12px;
+  width: 100%;
+}
+
+.product-table-wrap {
+  background: #fff;
+  border: 1px solid #dce4dc;
+  border-radius: 10px;
+  overflow-x: auto;
+}
+
+.product-table {
+  border-collapse: collapse;
+  min-width: 1120px;
+  text-align: left;
+  width: 100%;
+}
+
+.product-table th,
+.product-table td {
+  border-bottom: 1px solid #edf1ed;
+  padding: 14px 15px;
+  vertical-align: middle;
+}
+
+.product-table th {
+  color: #718078;
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.product-table td {
+  color: #66736c;
+  font-size: 0.82rem;
+}
+
+.product-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.product-table td strong,
+.product-table td small {
+  display: block;
+}
+
+.product-table td strong {
+  color: #26352f;
+  font-size: 0.88rem;
+}
+
+.product-table td small {
+  color: #8a968f;
+  font-size: 0.74rem;
+  margin-top: 3px;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.product-modal {
+  max-width: 620px;
+  max-height: 90svh;
+  overflow-y: auto;
+}
+
+.product-form-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 1fr 1fr;
+}
+
+.category-modal select {
+  background: #fff;
+  border: 1px solid #cbd8ce;
+  border-radius: 8px;
+  color: #26352f;
+  font: inherit;
+  padding: 10px 12px;
+  width: 100%;
+}
+
 .placeholder-page,
 .dashboard-page {
   max-width: 850px;
@@ -626,6 +746,19 @@ h1 {
     display: block;
   }
 
+  .products-heading .primary-action {
+    margin-top: 20px;
+  }
+
+  .products-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .products-toolbar input {
+    max-width: none;
+  }
+
   .categories-heading .primary-action {
     margin-top: 20px;
   }
@@ -645,5 +778,9 @@ h1 {
 
   .login-card {
     padding: 30px 24px;
+  }
+
+  .product-form-grid {
+    grid-template-columns: 1fr;
   }
 }
