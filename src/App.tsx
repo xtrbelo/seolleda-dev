@@ -14,6 +14,7 @@ import {
   StockPage,
 } from "./pages/AdminPages";
 import CheckoutPage from "./pages/CheckoutPage";
+import CategoriesPage from "./pages/CategoriesPage";
 
 function App() {
   return (
@@ -31,6 +32,7 @@ function App() {
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<AdminDashboardPage />} />
               <Route path="produtos" element={<ProductsPage />} />
+              <Route path="categorias" element={<CategoriesPage />} />
               <Route path="estoque" element={<StockPage />} />
               <Route path="vendas" element={<SalesPage />} />
               <Route path="relatorios" element={<ReportsPage />} />
