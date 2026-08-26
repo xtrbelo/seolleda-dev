@@ -5,6 +5,7 @@ type CartSummaryProps = {
   canCheckout: boolean;
   onClear: () => void;
   onCheckout: () => void;
+  isProcessing: boolean;
 };
 
 function CartSummary({
@@ -14,6 +15,7 @@ function CartSummary({
   canCheckout,
   onClear,
   onCheckout,
+  isProcessing,
 }: CartSummaryProps) {
   return (
     <aside className="cart-summary">
@@ -28,10 +30,10 @@ function CartSummary({
       <button
         type="button"
         className="checkout-button"
-        disabled={!canCheckout}
+        disabled={!canCheckout || isProcessing}
         onClick={onCheckout}
       >
-        Finalizar compra
+        {isProcessing ? "Preparando compra..." : "Finalizar compra"}
       </button>
       {canCheckout && (
         <button type="button" className="clear-cart-button" onClick={onClear}>

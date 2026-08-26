@@ -5,6 +5,7 @@ import CartSummary from "../components/checkout/CartSummary";
 import { getInventoryForProduct } from "../services/inventoryService";
 import { getOrCreateDefaultStore } from "../services/storeService";
 import { getProductByBarcode } from "../services/productService";
+import { createSale } from "../services/saleService";
 import type { CartItem as CartItemType } from "../types/cart";
 
 const currencyFormatter = new Intl.NumberFormat("pt-BR", {
@@ -23,6 +24,11 @@ function CheckoutPage() {
   const [isLookingUp, setIsLookingUp] = useState(false);
   const [isClearConfirmationOpen, setIsClearConfirmationOpen] = useState(false);
   const [isPaymentStepOpen, setIsPaymentStepOpen] = useState(false);
+  const [isCreatingSale, setIsCreatingSale] = useState(false);
+  const [saleId, setSaleId] = useState("");
+  const [backendTotalCents, setBackendTotalCents] = useState<number | null>(
+    null,
+  );
 
   // Na próxima etapa, o backend deve recalcular preço, disponibilidade e total usando productId e quantity.
   const total = useMemo(
@@ -122,6 +128,24 @@ function CheckoutPage() {
     showFeedback("Carrinho limpo.");
   }
 
+  async function handleCheckout() {
+    if (!cart.length || isCreatingSale) return;
+    setIsCreatingSale(true);
+    setFeedback("Preparando compra...");
+    setIsError(false);
+    try {
+      const sale = await createSale(cart);
+      setSaleId(sale.saleId);
+      setBackendTotalCents(sale.totalCents);
+      setIsPaymentStepOpen(true);
+      setFeedback("");
+    } catch {
+      showFeedback("Não foi possível iniciar a compra. Tente novamente.", true);
+    } finally {
+      setIsCreatingSale(false);
+    }
+  }
+
   return (
     <section className="self-checkout-page">
       <div className="checkout-intro">
@@ -185,7 +209,8 @@ function CheckoutPage() {
           formatCurrency={formatCurrency}
           canCheckout={cart.length > 0}
           onClear={() => setIsClearConfirmationOpen(true)}
-          onCheckout={() => setIsPaymentStepOpen(true)}
+          onCheckout={() => void handleCheckout()}
+          isProcessing={isCreatingSale}
         />
       </div>
       {isClearConfirmationOpen && (
@@ -227,7 +252,10 @@ function CheckoutPage() {
           >
             <span className="eyebrow">Próxima etapa</span>
             <h2 id="payment-title">Escolha a forma de pagamento</h2>
-            <p>Pagamento será implementado na próxima etapa.</p>
+            <p>
+              Total confirmado: {formatCurrency((backendTotalCents ?? 0) / 100)}
+            </p>
+            <p className="sale-reference">Venda preparada: {saleId}</p>
             <div className="payment-options">
               <button
                 type="button"
