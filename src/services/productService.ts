@@ -101,6 +101,22 @@ export async function listProducts(): Promise<Product[]> {
     .sort((first, second) => first.name.localeCompare(second.name, "pt-BR"));
 }
 
+export async function getProductByBarcode(
+  barcode: string,
+): Promise<Product | null> {
+  const snapshot = await getDocs(
+    query(
+      productsCollection,
+      where("barcode", "==", normalizeBarcode(barcode)),
+      limit(1),
+    ),
+  );
+  const productDocument = snapshot.docs[0];
+  return productDocument
+    ? ({ id: productDocument.id, ...productDocument.data() } as Product)
+    : null;
+}
+
 export async function createProduct(input: ProductInput) {
   const cleanInput = cleanProductInput(input);
   await findDuplicate(cleanInput);

@@ -27,6 +27,23 @@ export async function listInventory(storeId: string): Promise<Inventory[]> {
   );
 }
 
+export async function getInventoryForProduct(
+  storeId: string,
+  productId: string,
+): Promise<Inventory | null> {
+  const snapshot = await getDocs(
+    query(
+      inventoryCollection,
+      where("storeId", "==", storeId),
+      where("productId", "==", productId),
+    ),
+  );
+  const inventoryDocument = snapshot.docs[0];
+  return inventoryDocument
+    ? ({ id: inventoryDocument.id, ...inventoryDocument.data() } as Inventory)
+    : null;
+}
+
 export async function listStockMovements(
   storeId: string,
   productId: string,
