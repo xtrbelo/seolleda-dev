@@ -1,19 +1,11 @@
 import AdminSectionPage from "./AdminSectionPage";
+export { default as StockPage } from "./StockPage";
 
 export function ProductsPage() {
   return (
     <AdminSectionPage
       title="Produtos"
       description="Cadastre e organize o catálogo da Seolleda."
-    />
-  );
-}
-
-export function StockPage() {
-  return (
-    <AdminSectionPage
-      title="Estoque"
-      description="Acompanhe a disponibilidade dos seus produtos."
     />
   );
 }
