@@ -10,7 +10,6 @@
 import {setGlobalOptions} from "firebase-functions";
 import {getCheckoutProduct} from "./checkout/getCheckoutProduct.js";
 import {createSale} from "./sales/createSale.js";
-import {releaseExpiredSales} from "./sales/releaseExpiredSales.js";
 // import {onRequest} from "firebase-functions/https";
 // import * as logger from "firebase-functions/logger";
 
@@ -29,7 +28,7 @@ import {releaseExpiredSales} from "./sales/releaseExpiredSales.js";
 // this will be the maximum concurrent request count.
 setGlobalOptions({maxInstances: 10});
 
-export {createSale, getCheckoutProduct, releaseExpiredSales};
+export {createSale, getCheckoutProduct};
 
 // export const helloWorld = onRequest((request, response) => {
 //   logger.info("Hello logs!", {structuredData: true});

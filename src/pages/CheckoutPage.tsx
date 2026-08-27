@@ -27,7 +27,7 @@ function CheckoutPage() {
     null,
   );
 
-  // Na próxima etapa, o backend deve recalcular preço, disponibilidade e total usando productId e quantity.
+  // O backend recalcula preço, disponibilidade e total usando productId e quantity.
   const total = useMemo(
     () => cart.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0),
     [cart],
@@ -126,7 +126,6 @@ function CheckoutPage() {
       const sale = await createSale(cart);
       setSaleId(sale.saleId);
       setBackendTotalCents(sale.totalCents);
-      setCart([]);
       setIsPaymentStepOpen(true);
       setFeedback("");
     } catch {

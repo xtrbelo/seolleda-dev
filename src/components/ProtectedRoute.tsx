@@ -11,14 +11,14 @@ function AuthLoading() {
 }
 
 export function ProtectedRoute() {
-  const { user, isAdmin, loading } = useAuth();
+  const { user, loading } = useAuth();
   const location = useLocation();
 
   if (loading) {
     return <AuthLoading />;
   }
 
-  if (!user || !isAdmin) {
+  if (!user) {
     return <Navigate to="/admin/login" replace state={{ from: location }} />;
   }
 
@@ -26,13 +26,13 @@ export function ProtectedRoute() {
 }
 
 export function PublicOnlyRoute() {
-  const { user, isAdmin, loading } = useAuth();
+  const { user, loading } = useAuth();
 
   if (loading) {
     return <AuthLoading />;
   }
 
-  if (user && isAdmin) {
+  if (user) {
     return <Navigate to="/admin" replace />;
   }
 

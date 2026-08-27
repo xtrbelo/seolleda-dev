@@ -6,7 +6,6 @@ export type CreateSaleItem = {
 };
 
 export type SaleItemSnapshot = CreateSaleItem & {
-  inventoryId: string;
   name: string;
   sku: string;
   barcode: string;

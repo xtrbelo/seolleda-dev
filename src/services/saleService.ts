@@ -4,7 +4,14 @@ import { app } from "../lib/firebase";
 import type { CartItem } from "../types/cart";
 
 const functions = getFunctions(app, "southamerica-east1");
-const terminalId = import.meta.env.VITE_TERMINAL_ID || "default-terminal";
+const terminalId = import.meta.env.VITE_TERMINAL_ID;
+
+function getTerminalId() {
+  if (!terminalId?.trim()) {
+    throw new Error("VITE_TERMINAL_ID_NOT_CONFIGURED");
+  }
+  return terminalId.trim();
+}
 
 export type CheckoutProduct = {
   id: string;
@@ -35,7 +42,7 @@ export async function createSale(
     "createSale",
   );
   const response = await callable({
-    terminalId,
+    terminalId: getTerminalId(),
     items: items.map(({ productId, quantity }) => ({ productId, quantity })),
   });
   return response.data;
@@ -48,6 +55,6 @@ export async function getCheckoutProduct(
     { terminalId: string; barcode: string },
     CheckoutProduct
   >(functions, "getCheckoutProduct");
-  const response = await callable({ terminalId, barcode });
+  const response = await callable({ terminalId: getTerminalId(), barcode });
   return response.data;
 }

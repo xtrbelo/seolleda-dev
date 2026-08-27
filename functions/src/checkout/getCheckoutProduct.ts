@@ -1,6 +1,6 @@
 /* eslint-disable max-len */
-import { onCall, HttpsError } from "firebase-functions/v2/https";
-import { firestore } from "../lib/firebaseAdmin.js";
+import {onCall, HttpsError} from "firebase-functions/v2/https";
+import {firestore} from "../lib/firebaseAdmin.js";
 
 type CheckoutProductResponse = {
   id: string;
@@ -12,7 +12,7 @@ type CheckoutProductResponse = {
 };
 
 export const getCheckoutProduct = onCall(
-  { region: "southamerica-east1" },
+  {region: "southamerica-east1"},
   async (request): Promise<CheckoutProductResponse> => {
     const data = request.data as Record<string, unknown> | null;
     const barcode =
