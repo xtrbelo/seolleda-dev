@@ -2,10 +2,7 @@ import { useMemo, useState } from "react";
 import BarcodeScanner from "../components/checkout/BarcodeScanner";
 import CartItem from "../components/checkout/CartItem";
 import CartSummary from "../components/checkout/CartSummary";
-import { getInventoryForProduct } from "../services/inventoryService";
-import { getOrCreateDefaultStore } from "../services/storeService";
-import { getProductByBarcode } from "../services/productService";
-import { createSale } from "../services/saleService";
+import { createSale, getCheckoutProduct } from "../services/saleService";
 import type { CartItem as CartItemType } from "../types/cart";
 
 const currencyFormatter = new Intl.NumberFormat("pt-BR", {
@@ -52,16 +49,8 @@ function CheckoutPage() {
     setFeedback("Buscando produto...");
     setIsError(false);
     try {
-      const product = await getProductByBarcode(barcode);
-      if (!product) return showFeedback("Produto não encontrado.", true);
-      if (!product.active)
-        return showFeedback(
-          "Este produto não está disponível para venda.",
-          true,
-        );
-      const store = await getOrCreateDefaultStore();
-      const inventory = await getInventoryForProduct(store.id, product.id);
-      const availableStock = inventory?.quantity ?? 0;
+      const product = await getCheckoutProduct(barcode);
+      const availableStock = product.availableStock;
       if (availableStock <= 0)
         return showFeedback("Produto sem estoque.", true);
       const existingItem = cart.find((item) => item.productId === product.id);
@@ -137,6 +126,7 @@ function CheckoutPage() {
       const sale = await createSale(cart);
       setSaleId(sale.saleId);
       setBackendTotalCents(sale.totalCents);
+      setCart([]);
       setIsPaymentStepOpen(true);
       setFeedback("");
     } catch {

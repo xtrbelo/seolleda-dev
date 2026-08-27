@@ -2,40 +2,141 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Checkout only reads catalog and availability. Administrative writes remain authenticated.
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.token.admin == true
+        && request.auth.token.email_verified == true;
+    }
+
+    function validString(value, minimum, maximum) {
+      return value is string && value.size() >= minimum && value.size() <= maximum;
+    }
+
+    function validProduct(data) {
+      return data.keys().hasOnly([
+          'name', 'normalizedName', 'description', 'sku', 'normalizedSku',
+          'barcode', 'categoryId', 'categoryName', 'costPrice', 'salePrice',
+          'active', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasAll([
+          'name', 'normalizedName', 'description', 'sku', 'normalizedSku',
+          'barcode', 'categoryId', 'categoryName', 'costPrice', 'salePrice',
+          'active', 'createdAt', 'updatedAt'
+        ])
+        && validString(data.name, 2, 120)
+        && validString(data.normalizedName, 2, 120)
+        && data.description is string && data.description.size() <= 2000
+        && validString(data.sku, 1, 64) && validString(data.normalizedSku, 1, 64)
+        && validString(data.barcode, 1, 64)
+        && validString(data.categoryId, 1, 128)
+        && validString(data.categoryName, 1, 120)
+        && data.costPrice is number && data.costPrice >= 0 && data.costPrice <= 1000000000
+        && data.salePrice is number && data.salePrice >= 0 && data.salePrice <= 1000000000
+        && data.active is bool
+        && data.createdAt is timestamp && data.updatedAt is timestamp;
+    }
+
     match /products/{productId} {
-      allow read: if true;
-      allow write: if request.auth != null;
+      allow read: if isAdmin();
+      allow create: if isAdmin() && validProduct(request.resource.data)
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+      allow update: if isAdmin() && validProduct(request.resource.data)
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if isAdmin();
     }
 
     match /categories/{categoryId} {
-      allow read: if true;
-      allow write: if request.auth != null;
+      allow read: if isAdmin();
+      allow create, update: if isAdmin()
+        && request.resource.data.keys().hasOnly([
+          'name', 'normalizedName', 'description', 'active', 'createdAt', 'updatedAt'
+        ])
+        && validString(request.resource.data.name, 2, 120)
+        && validString(request.resource.data.normalizedName, 2, 120)
+        && request.resource.data.description is string
+        && request.resource.data.description.size() <= 2000
+        && request.resource.data.active is bool
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.updatedAt == request.time
+        && (resource == null || request.resource.data.createdAt == resource.data.createdAt);
+      allow delete: if isAdmin();
     }
 
     match /stores/{storeId} {
-      allow read: if true;
-      allow write: if request.auth != null;
+      allow read: if isAdmin();
+      allow create, update: if isAdmin()
+        && request.resource.data.keys().hasOnly(['name', 'active', 'createdAt', 'updatedAt'])
+        && validString(request.resource.data.name, 2, 120)
+        && request.resource.data.active is bool
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.updatedAt == request.time
+        && (resource == null || request.resource.data.createdAt == resource.data.createdAt);
+      allow delete: if isAdmin();
     }
 
     match /inventory/{inventoryId} {
-      allow read: if true;
-      allow write: if request.auth != null;
+      allow read: if isAdmin();
+      allow create: if isAdmin()
+        && request.resource.data.keys().hasOnly([
+          'storeId', 'productId', 'quantity', 'minimumQuantity', 'createdAt', 'updatedAt'
+        ])
+        && inventoryId == request.resource.data.storeId + '_' + request.resource.data.productId
+        && validString(request.resource.data.storeId, 1, 128)
+        && validString(request.resource.data.productId, 1, 128)
+        && request.resource.data.quantity is int && request.resource.data.quantity >= 0
+        && request.resource.data.quantity <= 1000000000
+        && request.resource.data.minimumQuantity is int
+        && request.resource.data.minimumQuantity >= 0
+        && request.resource.data.minimumQuantity <= 1000000000
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+      allow update: if isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['quantity', 'minimumQuantity', 'updatedAt'])
+        && request.resource.data.quantity is int && request.resource.data.quantity >= 0
+        && request.resource.data.quantity <= 1000000000
+        && request.resource.data.minimumQuantity is int
+        && request.resource.data.minimumQuantity >= 0
+        && request.resource.data.minimumQuantity <= 1000000000
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if false;
     }
 
     match /stockMovements/{movementId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null;
+      allow read: if isAdmin();
+      allow create: if isAdmin()
+        && request.resource.data.keys().hasOnly([
+          'storeId', 'productId', 'productName', 'productSku', 'productBarcode',
+          'type', 'quantity', 'previousQuantity', 'newQuantity', 'reason',
+          'userId', 'userEmail', 'createdAt'
+        ])
+        && validString(request.resource.data.storeId, 1, 128)
+        && validString(request.resource.data.productId, 1, 128)
+        && validString(request.resource.data.productName, 1, 120)
+        && validString(request.resource.data.productSku, 1, 64)
+        && validString(request.resource.data.productBarcode, 1, 64)
+        && request.resource.data.type in ['ENTRY', 'EXIT', 'ADJUSTMENT']
+        && request.resource.data.quantity is int && request.resource.data.quantity > 0
+        && request.resource.data.quantity <= 1000000000
+        && request.resource.data.previousQuantity is int
+        && request.resource.data.previousQuantity >= 0
+        && request.resource.data.newQuantity is int && request.resource.data.newQuantity >= 0
+        && validString(request.resource.data.reason, 1, 500)
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.userEmail == request.auth.token.email
+        && request.resource.data.createdAt == request.time;
+      allow update, delete: if false;
     }
 
+    // Provisioned only through the Admin SDK or Firebase Console.
     match /terminals/{terminalId} {
-      allow read: if true;
-      allow write: if request.auth != null;
+      allow read, write: if false;
     }
 
-    // Sales are created exclusively by the Admin SDK inside createSale.
     match /sales/{saleId} {
-      allow read: if request.auth != null;
+      allow read: if isAdmin();
       allow create, update, delete: if false;
     }
   }
