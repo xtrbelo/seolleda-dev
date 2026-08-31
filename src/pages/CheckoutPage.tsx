@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import BarcodeScanner from "../components/checkout/BarcodeScanner";
 import CartItem from "../components/checkout/CartItem";
 import CartSummary from "../components/checkout/CartSummary";
+import PixPayment from "../components/checkout/PixPayment";
 import { createSale, getCheckoutProduct } from "../services/saleService";
 import type { CartItem as CartItemType } from "../types/cart";
 
@@ -26,6 +27,7 @@ function CheckoutPage() {
   const [backendTotalCents, setBackendTotalCents] = useState<number | null>(
     null,
   );
+  const [showPixFlow, setShowPixFlow] = useState(false);
 
   // O backend recalcula preço, disponibilidade e total usando productId e quantity.
   const total = useMemo(
@@ -126,6 +128,7 @@ function CheckoutPage() {
       const sale = await createSale(cart);
       setSaleId(sale.saleId);
       setBackendTotalCents(sale.totalCents);
+      setShowPixFlow(false);
       setIsPaymentStepOpen(true);
       setFeedback("");
     } catch {
@@ -239,39 +242,61 @@ function CheckoutPage() {
             aria-modal="true"
             aria-labelledby="payment-title"
           >
-            <span className="eyebrow">Próxima etapa</span>
-            <h2 id="payment-title">Escolha a forma de pagamento</h2>
-            <p>
-              Total confirmado: {formatCurrency((backendTotalCents ?? 0) / 100)}
-            </p>
-            <p className="sale-reference">Venda preparada: {saleId}</p>
-            <div className="payment-options">
-              <button
-                type="button"
-                onClick={() =>
-                  showFeedback("Pagamento será implementado na próxima etapa.")
-                }
-              >
-                <strong>PIX</strong>
-                <span>Disponível em breve</span>
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  showFeedback("Pagamento será implementado na próxima etapa.")
-                }
-              >
-                <strong>CARTÃO</strong>
-                <span>Disponível em breve</span>
-              </button>
-            </div>
-            <button
-              type="button"
-              className="back-to-cart"
-              onClick={() => setIsPaymentStepOpen(false)}
-            >
-              Voltar para o carrinho
-            </button>
+            {!showPixFlow ? (
+              <>
+                <span className="eyebrow">Próxima etapa</span>
+                <h2 id="payment-title">Escolha a forma de pagamento</h2>
+                <p>
+                  Total confirmado:{" "}
+                  {formatCurrency((backendTotalCents ?? 0) / 100)}
+                </p>
+                <p className="sale-reference">Venda preparada: {saleId}</p>
+                <div className="payment-options">
+                  <button
+                    id="btn-pix"
+                    type="button"
+                    onClick={() => setShowPixFlow(true)}
+                  >
+                    <strong>PIX</strong>
+                    <span>Rápido e sem taxas</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      showFeedback(
+                        "Pagamento será implementado na próxima etapa.",
+                      )
+                    }
+                  >
+                    <strong>CARTÃO</strong>
+                    <span>Disponível em breve</span>
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  className="back-to-cart"
+                  onClick={() => setIsPaymentStepOpen(false)}
+                >
+                  Voltar para o carrinho
+                </button>
+              </>
+            ) : (
+              <>
+                <span className="eyebrow">Pagamento</span>
+                <h2 id="payment-title">Pix</h2>
+                <PixPayment
+                  saleId={saleId}
+                  totalCents={backendTotalCents ?? 0}
+                />
+                <button
+                  type="button"
+                  className="back-to-cart"
+                  onClick={() => setShowPixFlow(false)}
+                >
+                  ← Outras formas de pagamento
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}

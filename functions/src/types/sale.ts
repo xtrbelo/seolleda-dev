@@ -24,3 +24,28 @@ export type CreateSaleResponse = {
   status: "PENDING_PAYMENT";
   expiresAt: Timestamp;
 };
+
+// ---------------------------------------------------------------------------
+// PIX Payment
+// ---------------------------------------------------------------------------
+
+export type CreatePixPaymentData = {
+  saleId: string;
+  payerEmail: string;
+};
+
+/**
+ * Dados retornados ao frontend após criar ou reutilizar uma cobrança Pix.
+ * Nunca inclui o Access Token nem campos administrativos.
+ */
+export type CreatePixPaymentResponse = {
+  orderId: string;
+  paymentId: string;
+  status: string;
+  statusDetail: string;
+  qrCode: string;
+  /** Pode estar vazio em ambiente de teste do Mercado Pago. */
+  qrCodeBase64: string;
+  ticketUrl: string;
+  expiresAt: Timestamp;
+};

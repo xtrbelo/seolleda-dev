@@ -1370,3 +1370,216 @@ h1 {
     text-align: left;
   }
 }
+
+/* ==========================================================================
+   PIX PAYMENT — fluxo de pagamento Pix
+   ========================================================================== */
+
+/* Formulário de email */
+.pix-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 8px 0;
+  width: 100%;
+}
+
+.pix-form-hint {
+  color: #555;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.pix-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #173b36;
+}
+
+.pix-email-input {
+  border: 1.5px solid #ccc;
+  border-radius: 8px;
+  font-size: 1rem;
+  outline: none;
+  padding: 10px 14px;
+  transition: border-color 0.2s;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.pix-email-input:focus {
+  border-color: #173b36;
+}
+
+.pix-email-input.pix-input-error {
+  border-color: #c0392b;
+}
+
+.pix-email-input:disabled {
+  background: #f0f0f0;
+  cursor: not-allowed;
+}
+
+.pix-error-msg {
+  color: #c0392b;
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.pix-generate-button {
+  background: #173b36;
+  border: none;
+  border-radius: 10px;
+  color: #fff;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 12px 20px;
+  transition: background 0.2s, opacity 0.2s;
+}
+
+.pix-generate-button:hover:not(:disabled) {
+  background: #1f5248;
+}
+
+.pix-generate-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+/* QR Code */
+.pix-qrcode-container {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 8px 0;
+  width: 100%;
+}
+
+.pix-method-label {
+  color: #173b36;
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.pix-total {
+  color: #333;
+  font-size: 1rem;
+  margin: 0;
+}
+
+.pix-total strong {
+  color: #173b36;
+  font-size: 1.15rem;
+}
+
+.pix-qr-image {
+  border: 2px solid #e5e8e2;
+  border-radius: 12px;
+  display: block;
+  padding: 8px;
+}
+
+.pix-qr-placeholder {
+  align-items: center;
+  background: #f0f0f0;
+  border: 2px dashed #bbb;
+  border-radius: 12px;
+  color: #888;
+  display: flex;
+  flex-direction: column;
+  font-size: 0.9rem;
+  gap: 6px;
+  height: 180px;
+  justify-content: center;
+  width: 180px;
+}
+
+.pix-qr-placeholder small {
+  font-size: 0.75rem;
+  text-align: center;
+  padding: 0 12px;
+}
+
+.pix-countdown {
+  color: #555;
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.pix-countdown strong {
+  color: #173b36;
+}
+
+/* Pix Copia e Cola */
+.pix-copy-code {
+  background: #f7f8f5;
+  border: 1.5px solid #e5e8e2;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.pix-copy-label {
+  color: #173b36;
+  font-size: 0.85rem;
+  font-weight: 700;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.pix-code-textarea {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  color: #333;
+  font-family: monospace;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  padding: 8px 10px;
+  resize: none;
+  width: 100%;
+  box-sizing: border-box;
+  word-break: break-all;
+}
+
+.pix-copy-button {
+  align-self: flex-start;
+  background: #e9b949;
+  border: none;
+  border-radius: 8px;
+  color: #173b36;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 700;
+  padding: 9px 18px;
+  transition: background 0.2s, transform 0.1s;
+}
+
+.pix-copy-button:hover {
+  background: #d4a53e;
+}
+
+.pix-copy-button:active {
+  transform: scale(0.97);
+}
+
+/* Link de instruções */
+.pix-ticket-link {
+  color: #173b36;
+  font-size: 0.85rem;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color 0.2s;
+}
+
+.pix-ticket-link:hover {
+  color: #1f5248;
+}

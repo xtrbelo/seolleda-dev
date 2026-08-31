@@ -9,6 +9,7 @@
 
 import {setGlobalOptions} from "firebase-functions";
 import {getCheckoutProduct} from "./checkout/getCheckoutProduct.js";
+import {createPixPayment} from "./payments/createPixPayment.js";
 import {createSale} from "./sales/createSale.js";
 // import {onRequest} from "firebase-functions/https";
 // import * as logger from "firebase-functions/logger";
@@ -28,7 +29,7 @@ import {createSale} from "./sales/createSale.js";
 // this will be the maximum concurrent request count.
 setGlobalOptions({maxInstances: 10});
 
-export {createSale, getCheckoutProduct};
+export {createSale, getCheckoutProduct, createPixPayment};
 
 // export const helloWorld = onRequest((request, response) => {
 //   logger.info("Hello logs!", {structuredData: true});
