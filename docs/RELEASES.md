@@ -12,7 +12,7 @@ A fonte única da versão exibida é src/lib/appVersion.ts. A versão técnica 0
 | --- | --- | --- |
 | 1A | Base existente: cadastros, checkout, Pix, estoque administrativo e indicador de versão | Publicada em seolleda-dev em 07/09/2026; estoque homologado |
 | 1B | Gestão de vendas: consulta, filtros, detalhes e identificação de pendências | Homologada e publicada em HML; deploy confirmado pelo usuário |
-| 1C | Relatórios e dashboard com dados reais | Homologada pelo usuário; fechamento e publicação pendentes |
+| 1C | Relatórios e dashboard com dados reais | Homologada e publicada em HML; deploy confirmado pelo usuário |
 | 1D | Pagamento por cartão | Planejada; definir integração e terminal antes de implementar |
 
 Não tratar fases planejadas como implementadas. A identificação 1A foi adotada e publicada em 07/09/2026. Histórico em docs/CHANGELOG.md.

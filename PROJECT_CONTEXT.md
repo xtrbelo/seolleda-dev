@@ -295,3 +295,7 @@ Usuário esclareceu: seolleda-dev é HOMOLOGAÇÃO (HML). Produção ainda não 
 ## Publicação 1B confirmada
 
 Usuário enviou saída Deploy complete do Hosting seolleda-dev (HML), site https://seolleda-dev.web.app. Versão 1B homologada e publicada. Nenhum deploy de Functions ou regras nesta etapa. Commit/tag não verificados nesta confirmação. Próxima fase: 1C — relatórios e dashboard.
+
+## Publicação 1C confirmada
+
+Usuário confirmou testes funcionais, lint e build e enviou Deploy complete do Hosting seolleda-dev (HML). Versão 1C homologada e publicada. Sem publicação de Functions ou regras. Commit e tag não verificados nesta confirmação. Próxima fase planejada: 1D — cartão; definir provedor e integração com terminal antes da implementação. Produção ainda não criada.

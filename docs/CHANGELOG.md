@@ -1,13 +1,13 @@
 # Histórico de versões
 
-## 1C — Relatórios e dashboard — Homologada; publicação pendente
+## 1C — Relatórios e dashboard — Publicada em HML
 
 - Indicadores por período de criação da compra, horário local e todas as lojas.
 - Receita, ticket médio e unidades apenas de vendas PAID/APPROVED sem revisão de pagamento; não são indicadores de lucro ou caixa por recebimento.
 - Relatórios diários e produtos ordenados por unidades vendidas.
 - Dashboard com estoque atual, alertas e atalhos administrativos.
 - Paginação automática; períodos excessivos são recusados sem exibir totais parciais (até 93 dias e limite conservador de 5.000 compras).
-- Apenas leitura; nenhum backend ou regra alterado. Usuário confirmou testes funcionais. Confirmação de build/lint e publicação pendentes; comandos executados pelo usuário no VS Code.
+- Apenas leitura; nenhum backend ou regra alterado. Usuário confirmou testes funcionais, lint e build sem erros. Publicação somente do Hosting em seolleda-dev (HML) confirmada pela saída Deploy complete enviada pelo usuário. Commit e tag não verificados nesta confirmação.
 
 ## 1B — Vendas — Publicada em HML
 
