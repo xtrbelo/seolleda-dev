@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import BrandLogo from "../components/BrandLogo";
 import BarcodeScanner from "../components/checkout/BarcodeScanner";
 import CartItem from "../components/checkout/CartItem";
 import CartSummary from "../components/checkout/CartSummary";
@@ -270,8 +271,7 @@ function CheckoutPage() {
     return (
       <section className="self-checkout-page checkout-welcome">
         <div className="checkout-welcome-card">
-          <span className="checkout-welcome-kicker">Comida asiática</span>
-          <h1>Seolleda</h1>
+          <h1 className="welcome-logo"><BrandLogo /></h1>
           <h2>Bem-vindo</h2>
           <p>
             Faça suas compras de forma rápida e segura.

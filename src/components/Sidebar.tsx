@@ -1,5 +1,6 @@
 import { NavLink } from "react-router-dom";
 import { adminNavigation } from "../lib/routes";
+import BrandLogo from "./BrandLogo";
 
 type SidebarProps = {
   onLogout: () => Promise<void>;
@@ -9,8 +10,7 @@ function Sidebar({ onLogout }: SidebarProps) {
   return (
     <aside className="sidebar">
       <div className="brand">
-        <span className="brand-mark">S</span>
-        <span>Seolleda</span>
+        <BrandLogo />
       </div>
 
       <nav aria-label="Navegação administrativa">
