@@ -1,17 +1,17 @@
 # Histórico de versões
 
-## 1C.1 — Responsividade em tablet — Em homologação
+## 1C.1 — Responsividade e logo oficial — Publicada em HML
 
 - Logo oficial também no ícone da aba; título Seolleda e idioma da página pt-BR.
 
 - Logo oficial fornecida pelo usuário aplicada no cabeçalho, menu administrativo, início da compra e login. JPG original preservado; enquadramento visual das margens brancas pelo CSS.
 
-- Segunda revisão após teste: CPF/e-mail em layout horizontal, carrinho empilhado até 1000px e Pix em duas colunas em paisagem; rolagem dos diálogos pela altura útil. Aguardando novo teste no tablet.
+- Segunda revisão após teste: CPF/e-mail em layout horizontal, carrinho empilhado até 1000px e Pix em duas colunas em paisagem; rolagem dos diálogos pela altura útil. Teste no tablet confirmado pelo usuário.
 
 - Indicadores com colunas flexíveis e quebra de valores longos.
 - Carrinho e painel ajustados para larguras de 821 a 1280 pixels.
 - Espaçamentos e diálogos ajustados para orientação horizontal com pouca altura.
-- Correção local; validação no tablet e build/lint pendentes. Não publicada.
+- Usuário confirmou homologação, build e lint sem erros (seis avisos). Deploy somente do Hosting em seolleda-dev (HML) confirmado pela saída Deploy complete. Commit e tag não verificados nesta confirmação.
 
 ## 1C — Relatórios e dashboard — Publicada em HML
 
