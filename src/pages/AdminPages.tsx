@@ -12,14 +12,7 @@ export function ProductsPage() {
 
 export { default as SalesPage } from "./SalesPage";
 
-export function ReportsPage() {
-  return (
-    <AdminSectionPage
-      title="Relatórios"
-      description="Visualize os principais indicadores do negócio."
-    />
-  );
-}
+export { default as ReportsPage } from "./ReportsPage";
 
 export function SettingsPage() {
   return (
