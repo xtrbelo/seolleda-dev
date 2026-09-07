@@ -291,3 +291,7 @@ Usuário autorizou publicação. Código 9d5a33af90ca7a92a2464b94173b0b67c9ed39e
 ## Ambientes e homologação 1B
 
 Usuário esclareceu: seolleda-dev é HOMOLOGAÇÃO (HML). Produção ainda não existe e será criada posteriormente em projeto separado. Referências históricas a DEV neste documento significam HML, nunca produção. Usuário confirmou validações e testes funcionais da 1B com sucesso. Fechamento e publicação 1B pendentes. Indicador agora identifica HML pelo projeto Firebase; ajuste de rótulo ainda não validado. Comandos continuam a cargo do usuário no VS Code.
+
+## Publicação 1B confirmada
+
+Usuário enviou saída Deploy complete do Hosting seolleda-dev (HML), site https://seolleda-dev.web.app. Versão 1B homologada e publicada. Nenhum deploy de Functions ou regras nesta etapa. Commit/tag não verificados nesta confirmação. Próxima fase: 1C — relatórios e dashboard.

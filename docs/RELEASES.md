@@ -11,7 +11,7 @@ A fonte única da versão exibida é src/lib/appVersion.ts. A versão técnica 0
 | Versão | Escopo | Situação |
 | --- | --- | --- |
 | 1A | Base existente: cadastros, checkout, Pix, estoque administrativo e indicador de versão | Publicada em seolleda-dev em 07/09/2026; estoque homologado |
-| 1B | Gestão de vendas: consulta, filtros, detalhes e identificação de pendências | Testada e homologada pelo usuário; fechamento e publicação pendentes |
+| 1B | Gestão de vendas: consulta, filtros, detalhes e identificação de pendências | Homologada e publicada em HML; deploy confirmado pelo usuário |
 | 1C | Relatórios e dashboard com dados reais | Planejada |
 | 1D | Pagamento por cartão | Planejada; definir integração e terminal antes de implementar |
 

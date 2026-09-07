@@ -1,13 +1,13 @@
 # Histórico de versões
 
-## 1B — Vendas — Homologada; publicação pendente
+## 1B — Vendas — Publicada em HML
 
 - Consulta por período de criação (horário local), em páginas de 100 vendas.
 - Busca por venda, terminal ou pagamento e filtro de situação sobre os registros carregados.
 - Detalhes dos itens, valores e datas, com alertas de revisão de pagamento e estoque.
 - Prazo encerrado é uma indicação local; não representa cancelamento no provedor.
 - Consulta administrativa somente leitura; regras e backend preservados.
-- Usuário confirmou execução das validações e testes funcionais com sucesso. Fechamento e publicação pendentes.
+- Usuário confirmou validações e testes funcionais com sucesso. Publicação somente do Hosting em seolleda-dev confirmada pela saída Deploy complete enviada pelo usuário. Site: https://seolleda-dev.web.app. Commit e tag não verificados nesta confirmação.
 - Indicador de versão identifica seolleda-dev como HML. Ajuste do rótulo posterior à homologação, ainda sem nova validação.
 
 ## 1A — Publicada em HML (seolleda-dev) — 07/09/2026

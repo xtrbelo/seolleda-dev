@@ -24,4 +24,4 @@
 
 ## Estado inicial
 
-Versão 1A publicada em HML (seolleda-dev) em 07/09/2026. Repositório: https://github.com/xtrbelo/seolleda-dev. Base de releases: main; tag release-1a. Versão 1B testada e homologada pelo usuário; fechamento e publicação pendentes. Detalhes em docs/RELEASES.md.
+Versão 1A publicada em HML (seolleda-dev) em 07/09/2026. Repositório: https://github.com/xtrbelo/seolleda-dev. Base de releases: main; tag release-1a. Versão 1B testada, homologada e publicada no Hosting HML; saída Deploy complete confirmada pelo usuário. Próxima fase: 1C — relatórios e dashboard. Detalhes em docs/RELEASES.md.
