@@ -287,3 +287,7 @@ Por solicitação do usuário, seguir fases como no Santa Fé. A versão funcion
 ## Publicação 1A — 07/09/2026
 
 Usuário autorizou publicação. Código 9d5a33af90ca7a92a2464b94173b0b67c9ed39e8, repositório https://github.com/xtrbelo/seolleda-dev. Hosting e cinco Functions (createSale, createPixPayment, getSalePaymentStatus, mercadoPagoWebhook, manageInventory) publicados com sucesso no seolleda-dev. Firebase confirmou Deploy complete. Site https://seolleda-dev.web.app respondeu HTTP 200 e entregou HTML idêntico ao build; bundle acessível com versão 1A. Sem alteração de regras. Validação final: 22 testes, builds/lints sem erros, diff-check aprovado. Estoque homologado previamente; teste funcional pós-publicação pendente. Documentação pós-deploy compõe o fechamento release-1a. Próxima fase: 1B, gestão de Vendas. Este registro substitui as pendências históricas de publicação 1A acima.
+
+## Ambientes e homologação 1B
+
+Usuário esclareceu: seolleda-dev é HOMOLOGAÇÃO (HML). Produção ainda não existe e será criada posteriormente em projeto separado. Referências históricas a DEV neste documento significam HML, nunca produção. Usuário confirmou validações e testes funcionais da 1B com sucesso. Fechamento e publicação 1B pendentes. Indicador agora identifica HML pelo projeto Firebase; ajuste de rótulo ainda não validado. Comandos continuam a cargo do usuário no VS Code.
