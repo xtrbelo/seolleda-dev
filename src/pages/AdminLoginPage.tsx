@@ -30,7 +30,7 @@ function AdminLoginPage() {
   return (
     <section className="login-page">
       <div className="login-card">
-        <span className="eyebrow">Seolleda admin</span>
+        <img className="login-official-logo" src="/seolleda-logo.jpg" alt="Seolleda — Comida Asiática" width="3508" height="2481" />
         <h1>Área administrativa</h1>
         <p>Entre para acessar o painel de gestão do Seolleda.</p>
         <form onSubmit={handleSubmit}>

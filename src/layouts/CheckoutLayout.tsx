@@ -1,12 +1,12 @@
 import { Link, Outlet } from "react-router-dom";
+import BrandLogo from "../components/BrandLogo";
 
 function CheckoutLayout() {
   return (
     <div className="checkout-shell">
       <header className="checkout-header">
         <Link to="/checkout" className="brand">
-          <span className="brand-mark">S</span>
-          <span>Seolleda</span>
+          <BrandLogo />
         </Link>
         <Link to="/admin/login" className="header-link">
           Área administrativa
