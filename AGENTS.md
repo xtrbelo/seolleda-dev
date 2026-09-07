@@ -1,6 +1,13 @@
 # Seolleda — regras permanentes
 
+## Ambientes
+
+- seolleda-dev é HOMOLOGAÇÃO (HML), apesar do sufixo dev. Nunca tratar este projeto como produção.
+- Produção ainda não existe; será criada posteriormente em projeto Firebase separado, com configuração explícita. Não inferir produção pelo modo de build do Vite.
+
 ## Trabalho por versão
+
+- Preferência do usuário para reduzir custo: agente faz ajustes no código e entrega comandos; usuário executa Git, builds, testes e deploy no VS Code. Não executar essas operações sem nova solicitação. Fazer leituras focadas e respostas curtas.
 
 - Ler docs/RELEASES.md e a entrada atual de docs/CHANGELOG.md antes de iniciar uma fase ou fechar uma versão.
 - Trabalhar em uma fase por vez, com escopo definido. Não iniciar a fase seguinte antes de concluir o fechamento da atual ou receber orientação explícita do usuário.
@@ -17,4 +24,4 @@
 
 ## Estado inicial
 
-Versão 1A publicada no seolleda-dev em 07/09/2026. Repositório: https://github.com/xtrbelo/seolleda-dev. Base de releases: main; tag release-1a. Estoque homologado pelo usuário. Próxima fase planejada: 1B — Vendas. Detalhes em docs/RELEASES.md.
+Versão 1A publicada em HML (seolleda-dev) em 07/09/2026. Repositório: https://github.com/xtrbelo/seolleda-dev. Base de releases: main; tag release-1a. Versão 1B testada e homologada pelo usuário; fechamento e publicação pendentes. Detalhes em docs/RELEASES.md.

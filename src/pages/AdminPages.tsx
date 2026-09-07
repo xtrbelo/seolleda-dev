@@ -10,14 +10,7 @@ export function ProductsPage() {
   );
 }
 
-export function SalesPage() {
-  return (
-    <AdminSectionPage
-      title="Vendas"
-      description="Consulte os pedidos realizados pela sua operação."
-    />
-  );
-}
+export { default as SalesPage } from "./SalesPage";
 
 export function ReportsPage() {
   return (

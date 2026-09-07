@@ -11,7 +11,7 @@ A fonte única da versão exibida é src/lib/appVersion.ts. A versão técnica 0
 | Versão | Escopo | Situação |
 | --- | --- | --- |
 | 1A | Base existente: cadastros, checkout, Pix, estoque administrativo e indicador de versão | Publicada em seolleda-dev em 07/09/2026; estoque homologado |
-| 1B | Gestão de vendas: consulta, filtros, detalhes e identificação de pendências | Planejada |
+| 1B | Gestão de vendas: consulta, filtros, detalhes e identificação de pendências | Testada e homologada pelo usuário; fechamento e publicação pendentes |
 | 1C | Relatórios e dashboard com dados reais | Planejada |
 | 1D | Pagamento por cartão | Planejada; definir integração e terminal antes de implementar |
 
@@ -28,7 +28,7 @@ Não tratar fases planejadas como implementadas. A identificação 1A foi adotad
 7. Preparar o build do commit aprovado, apresentar ambiente e alvos exatos; publicar após autorização. Não publicar alterações locais fora da versão revisada.
 8. Registrar commit, tag, data, projeto Firebase, alvos, resultado e homologação pós-deploy. Só declarar a versão publicada quando todos os alvos previstos tiverem sucesso; falhas ou deploys parciais ficam explícitos.
 
-Não há ambiente de produção confirmado para este projeto. O projeto conhecido é seolleda-dev. Não reutilizar projetos, tags ou comandos de deploy do Santa Fé.
+seolleda-dev é o ambiente de HOMOLOGAÇÃO (HML). Produção ainda não existe e será criada posteriormente em projeto Firebase separado. Todas as publicações anteriores mencionadas como DEV são publicações em HML. O modo production do build Vite não significa ambiente de produção. Não reutilizar projetos, tags ou comandos de deploy do Santa Fé.
 
 ## Validação atual
 
