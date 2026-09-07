@@ -1,16 +1,20 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPixPayment } from "../../services/paymentService";
 import type { CreatePixPaymentResponse } from "../../services/paymentService";
+import { getSalePaymentStatus } from "../../services/saleService";
 
 // ---------------------------------------------------------------------------
 // Tipos
 // ---------------------------------------------------------------------------
 
-type PixStep = "form" | "loading" | "qrcode" | "error";
+type PixStep = "loading" | "qrcode" | "approved" | "review" | "error";
 
 type PixPaymentProps = {
   saleId: string;
+  statusToken: string;
   totalCents: number;
+  customerEmail?: string;
+  onPaymentApproved: () => void;
 };
 
 // ---------------------------------------------------------------------------
@@ -41,7 +45,7 @@ function formatCountdown(expiresAtMs: number): string {
  * PixPayment
  *
  * Encapsula o fluxo completo de pagamento Pix:
- *   1. Formulário de e-mail → chama createPixPayment
+ *   1. Reutiliza o e-mail informado no início → chama createPixPayment
  *   2. Exibe QR Code, Pix Copia e Cola e link de instruções
  *
  * Responsabilidades deste componente:
@@ -49,14 +53,85 @@ function formatCountdown(expiresAtMs: number): string {
  *   - Nunca enviar valor, preço ou dados de produto
  *   - Desabilitar o botão durante o carregamento (anti-clique-duplo)
  */
-function PixPayment({ saleId, totalCents }: PixPaymentProps) {
-  const [step, setStep] = useState<PixStep>("form");
-  const [email, setEmail] = useState("");
-  const [emailError, setEmailError] = useState("");
+function PixPayment({
+  saleId,
+  statusToken,
+  totalCents,
+  customerEmail = "",
+  onPaymentApproved,
+}: PixPaymentProps) {
+  const [step, setStep] = useState<PixStep>("loading");
   const [pixData, setPixData] = useState<CreatePixPaymentResponse | null>(null);
   const [copyLabel, setCopyLabel] = useState("Copiar código Pix");
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [countdown, setCountdown] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+  const mountedRef = useRef(false);
+  const generatingRef = useRef(false);
+  const startedRef = useRef(false);
+  const approvalHandledRef = useRef(false);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      if (countdownRef.current) clearInterval(countdownRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (step !== "qrcode" || !pixData || !statusToken) return;
+
+    let stopped = false;
+    let checking = false;
+    let nextCheck: ReturnType<typeof setTimeout> | null = null;
+
+    const checkStatus = async () => {
+      if (stopped || checking) return;
+      checking = true;
+      try {
+        const state = await getSalePaymentStatus(saleId, statusToken);
+        if (stopped) return;
+        if (state === "APPROVED") {
+          setStep("approved");
+          if (countdownRef.current) clearInterval(countdownRef.current);
+          if (!approvalHandledRef.current) {
+            approvalHandledRef.current = true;
+            window.setTimeout(onPaymentApproved, 3500);
+          }
+          return;
+        }
+        if (state === "REVIEW_REQUIRED") {
+          setStep("review");
+          if (countdownRef.current) clearInterval(countdownRef.current);
+          return;
+        }
+        if (state === "EXPIRED") {
+          setCountdown("00:00");
+          return;
+        }
+      } catch {
+        // Falhas transitórias não escondem um QR Code ainda válido.
+      } finally {
+        checking = false;
+      }
+      if (!stopped) nextCheck = setTimeout(checkStatus, 2000);
+    };
+
+    void checkStatus();
+    return () => {
+      stopped = true;
+      if (nextCheck) clearTimeout(nextCheck);
+    };
+  }, [onPaymentApproved, pixData, saleId, statusToken, step]);
+
+  useEffect(() => {
+    if (startedRef.current) return;
+    startedRef.current = true;
+    void handleGeneratePix();
+  // A venda e o e-mail são imutáveis durante esta etapa do checkout.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function startCountdown(expiresAtMs: number) {
     setCountdown(formatCountdown(expiresAtMs));
@@ -71,37 +146,28 @@ function PixPayment({ saleId, totalCents }: PixPaymentProps) {
   }
 
   async function handleGeneratePix() {
-    // Validação mínima no frontend para feedback imediato
-    const trimmed = email.trim().toLowerCase();
-    if (!trimmed || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
-      setEmailError("Informe um e-mail válido.");
-      return;
-    }
-    setEmailError("");
+    if (generatingRef.current) return;
+    const trimmed = customerEmail.trim().toLowerCase();
+    generatingRef.current = true;
     setStep("loading");
 
     try {
-      const data = await createPixPayment(saleId, trimmed);
+      const data = await createPixPayment(saleId, trimmed || undefined);
+      if (!mountedRef.current) return;
+      if (!Number.isFinite(data.expiresAtMs)) {
+        throw new Error("Prazo do Pix indisponível. Tente novamente.");
+      }
       setPixData(data);
       setStep("qrcode");
 
-      // Calcula vencimento — expiresAt pode chegar como Timestamp do Firebase
-      // ou como objeto com seconds/nanoseconds.
-      const expiresAtRaw = data.expiresAt as unknown;
-      let expiresAtMs: number;
-      if (
-        typeof expiresAtRaw === "object" &&
-        expiresAtRaw !== null &&
-        "seconds" in (expiresAtRaw as object)
-      ) {
-        expiresAtMs =
-          (expiresAtRaw as { seconds: number }).seconds * 1000;
-      } else {
-        expiresAtMs = Date.now() + 30 * 60 * 1000;
-      }
-      startCountdown(expiresAtMs);
-    } catch {
+      startCountdown(data.expiresAtMs);
+    } catch (error) {
+      if (!mountedRef.current) return;
+      setErrorMessage(error instanceof Error ? error.message :
+        "Não foi possível gerar o Pix. Tente novamente.");
       setStep("error");
+    } finally {
+      generatingRef.current = false;
     }
   }
 
@@ -121,43 +187,10 @@ function PixPayment({ saleId, totalCents }: PixPaymentProps) {
   // Render
   // ------------------------------------------------------------------
 
-  if (step === "form" || step === "loading") {
-    const isLoading = step === "loading";
+  if (step === "loading") {
     return (
-      <div className="pix-form">
-        <p className="pix-form-hint">
-          Informe o e-mail para receber a confirmação do pagamento.
-        </p>
-        <label htmlFor="pix-email" className="pix-label">
-          E-mail
-        </label>
-        <input
-          id="pix-email"
-          type="email"
-          className={`pix-email-input${emailError ? " pix-input-error" : ""}`}
-          placeholder="seu@email.com.br"
-          value={email}
-          onChange={(e) => {
-            setEmail(e.target.value);
-            if (emailError) setEmailError("");
-          }}
-          disabled={isLoading}
-          autoComplete="email"
-        />
-        {emailError && (
-          <p className="pix-error-msg" role="alert">
-            {emailError}
-          </p>
-        )}
-        <button
-          id="btn-gerar-pix"
-          type="button"
-          className="pix-generate-button"
-          onClick={() => void handleGeneratePix()}
-          disabled={isLoading}
-        >
-          {isLoading ? "Gerando Pix…" : "Gerar Pix"}
-        </button>
+      <div className="pix-form" role="status" aria-live="polite">
+        <p className="pix-form-hint">Gerando Pix…</p>
       </div>
     );
   }
@@ -166,15 +199,46 @@ function PixPayment({ saleId, totalCents }: PixPaymentProps) {
     return (
       <div className="pix-form">
         <p className="pix-error-msg" role="alert">
-          Não foi possível gerar o Pix. Tente novamente.
+          {errorMessage}
         </p>
         <button
           type="button"
           className="pix-generate-button"
-          onClick={() => setStep("form")}
+          onClick={() => {
+            generatingRef.current = false;
+            void handleGeneratePix();
+          }}
         >
           Tentar novamente
         </button>
+      </div>
+    );
+  }
+
+  if (step === "approved") {
+    return (
+      <div className="pix-success" role="status" aria-live="assertive">
+        <span className="pix-success-icon" aria-hidden="true">✓</span>
+        <h3>Pagamento aprovado!</h3>
+        <p>Retire seus produtos. Preparando a próxima compra…</p>
+      </div>
+    );
+  }
+
+  if (step === "review") {
+    return (
+      <div className="pix-form" role="alert">
+        <p>Pagamento recebido, mas a venda precisa de conferência.</p>
+        <p>Procure o responsável pela loja antes de retirar os produtos.</p>
+      </div>
+    );
+  }
+
+  if (countdown === "00:00") {
+    return (
+      <div className="pix-form" role="status">
+        <p>O prazo desta compra terminou. Não pague este Pix.</p>
+        <p>Se já pagou, procure o responsável pela loja para conferir a compra.</p>
       </div>
     );
   }
@@ -183,8 +247,11 @@ function PixPayment({ saleId, totalCents }: PixPaymentProps) {
   return (
     <div className="pix-qrcode-container">
       <p className="pix-method-label">Pague com Pix</p>
+      <p className="pix-awaiting-status" role="status">
+        Aguardando confirmação do pagamento…
+      </p>
       <p className="pix-total">
-        Total: <strong>{formatCurrency(totalCents / 100)}</strong>
+        Total: <strong>{formatCurrency((pixData?.totalCents ?? totalCents) / 100)}</strong>
       </p>
 
       {/* QR Code — base64 preferencial; fallback para texto se vazio */}
@@ -200,14 +267,14 @@ function PixPayment({ saleId, totalCents }: PixPaymentProps) {
         <div className="pix-qr-placeholder">
           <span>QR Code</span>
           <small>
-            (disponível após confirmação no ambiente de produção)
+            Use o código Pix Copia e Cola abaixo.
           </small>
         </div>
       )}
 
       {countdown && (
         <p className="pix-countdown">
-          Válido por <strong>{countdown}</strong>
+          Prazo desta compra: <strong>{countdown}</strong>
         </p>
       )}
 

@@ -16,13 +16,20 @@ export type SaleItemSnapshot = CreateSaleItem & {
 export type CreateSaleData = {
   terminalId: string;
   items: CreateSaleItem[];
+  customerDocument?: string;
+  customerEmail?: string;
 };
 
 export type CreateSaleResponse = {
   saleId: string;
+  statusToken: string;
   totalCents: number;
   status: "PENDING_PAYMENT";
   expiresAt: Timestamp;
+};
+
+export type GetSalePaymentStatusResponse = {
+  state: "PENDING" | "APPROVED" | "REVIEW_REQUIRED" | "EXPIRED";
 };
 
 // ---------------------------------------------------------------------------
@@ -39,13 +46,13 @@ export type CreatePixPaymentData = {
  * Nunca inclui o Access Token nem campos administrativos.
  */
 export type CreatePixPaymentResponse = {
-  orderId: string;
+  saleId: string;
   paymentId: string;
   status: string;
-  statusDetail: string;
   qrCode: string;
   /** Pode estar vazio em ambiente de teste do Mercado Pago. */
   qrCodeBase64: string;
   ticketUrl: string;
-  expiresAt: Timestamp;
+  expiresAtMs: number;
+  totalCents: number;
 };

@@ -1,146 +1,151 @@
-/**
- * Cliente para a Orders API do Mercado Pago.
- *
- * Responsabilidades:
- *   - Montar e enviar a requisição de criação de Order PIX
- *   - Extrair apenas os campos necessários da resposta
- *   - Nunca logar nem retornar o Access Token
- *
- * Referência: https://www.mercadopago.com.br/developers/pt/reference/orders/online/create/post
+/** Payments API only. Never log provider responses or credentials. */
+const MP_PAYMENTS_URL = "https://api.mercadopago.com/v1/payments";
+
+/** @param {Response} response Failed provider response.
+ * @return {Promise<void>} Logs only allowlisted categories and numeric codes.
  */
-
-// ---------------------------------------------------------------------------
-// ⚠️  MODO DE TESTE — AMBIENTE DE DESENVOLVIMENTO
-//
-// Quando true, inclui `payer.first_name = "APRO"` no body, o que faz o
-// Mercado Pago simular aprovação automática em credenciais de teste.
-//
-// TODO: definir como `false` antes do deploy em produção.
-//       Não remova este comentário — ele documenta o comportamento intencional.
-// ---------------------------------------------------------------------------
-const SEOLLEDA_MP_TEST_MODE = true;
-
-const MP_ORDERS_URL = "https://api.mercadopago.com/v1/orders";
-
-/**
- * Converte centavos (inteiro) para string decimal de 2 casas.
- * @param {number} cents Valor em centavos.
- * @return {string} Valor como string decimal ex: "11.00".
- */
-function centsToDecimalString(cents: number): string {
-  return (cents / 100).toFixed(2);
+async function reportHttpError(response: Response): Promise<void> {
+  const body = record(await response.json().catch(() => null));
+  const categories = [
+    "bad_request", "unauthorized", "forbidden", "not_found",
+    "invalid_token", "invalid_access_token", "invalid_credentials",
+    "internal_error", "internal_server_error", "too_many_requests",
+  ];
+  const category = typeof body.error === "string" &&
+    categories.includes(body.error) ? body.error : "unclassified";
+  const causes = Array.isArray(body.cause) ? body.cause : [];
+  const causeCodes = causes.map((cause) => record(cause).code)
+    .filter((code) => (typeof code === "number" || typeof code === "string") &&
+      /^\d{1,10}$/.test(String(code)))
+    .slice(0, 10).map(String);
+  console.error("Mercado Pago request rejected", {
+    httpStatus: response.status, category, causeCodes,
+  });
 }
 
-export type MpPixOrderParams = {
-  saleId: string;
-  totalCents: number;
-  payerEmail: string;
-  accessToken: string;
-};
-
-export type MpPixOrderResult = {
-  orderId: string;
-  orderStatus: string;
-  orderStatusDetail: string;
+export type MpPayment = {
   paymentId: string;
-  paymentStatus: string;
-  paymentStatusDetail: string;
+  status: string;
+  statusDetail: string;
+  externalReference: string;
+  totalCents: number;
+  currency: string;
+  paymentMethod: string;
+  attemptId: string;
+  approvedAtMs: number | null;
+  expiresAtMs: number | null;
   qrCode: string;
-  /** Pode estar vazio em ambiente de teste do Mercado Pago. */
   qrCodeBase64: string;
   ticketUrl: string;
 };
 
-/**
- * Cria uma Order Pix no Mercado Pago via Orders API.
- *
- * A X-Idempotency-Key é derivada do saleId para garantir estabilidade:
- * a mesma venda sempre gerará a mesma chave, evitando cobranças duplicadas
- * em caso de retry sem idempotência local ter sido satisfeita.
- * @param {MpPixOrderParams} params Parâmetros da cobrança PIX.
- * @return {Promise<MpPixOrderResult>} Dados extraídos da Order criada.
+/** @param {unknown} value Untrusted JSON.
+ * @return {object} Object safe to inspect.
  */
-export async function createMpPixOrder(
-  params: MpPixOrderParams,
-): Promise<MpPixOrderResult> {
-  const {saleId, totalCents, payerEmail, accessToken} = params;
-  const amountString = centsToDecimalString(totalCents);
+function record(value: unknown): Record<string, unknown> {
+  return value !== null && typeof value === "object" ?
+    value as Record<string, unknown> : {};
+}
 
-  // Chave de idempotência estável por saleId (não muda a cada chamada).
-  const idempotencyKey = `pix-${saleId}`;
+/** @param {unknown} value Provider date.
+ * @return {number|null} Parsed date, when valid.
+ */
+function dateMs(value: unknown): number | null {
+  const parsed = typeof value === "string" ? Date.parse(value) : NaN;
+  return Number.isFinite(parsed) ? parsed : null;
+}
 
-  const payer: Record<string, string> = {email: payerEmail};
-
-  if (SEOLLEDA_MP_TEST_MODE) {
-    // ⚠️  DEV ONLY: "APRO" instrui o MP a aprovar automaticamente em testes.
-    // Remova ou condicione em produção.
-    payer.first_name = "APRO";
+/** @param {unknown} data Provider response.
+ * @return {MpPayment} Validated payment.
+ */
+function parsePayment(data: unknown): MpPayment {
+  const payment = record(data);
+  const id = String(payment.id ?? "");
+  if (!/^\d+$/.test(id) || typeof payment.status !== "string" ||
+      !payment.status || typeof payment.transaction_amount !== "number" ||
+      !Number.isFinite(payment.transaction_amount) ||
+      payment.transaction_amount <= 0) {
+    throw new Error("MP_INVALID_RESPONSE");
   }
-
-  const body = {
-    type: "online",
-    processing_mode: "automatic",
-    external_reference: saleId,
-    total_amount: amountString,
-    payer,
-    transactions: {
-      payments: [
-        {
-          amount: amountString,
-          payment_method: {
-            id: "pix",
-            type: "bank_transfer",
-          },
-        },
-      ],
-    },
-    expiration_time: "PT30M",
+  const totalCents = Math.round(payment.transaction_amount * 100);
+  if (!Number.isSafeInteger(totalCents)) throw new Error("MP_INVALID_AMOUNT");
+  const qr = record(record(payment.point_of_interaction).transaction_data);
+  return {
+    paymentId: id,
+    status: payment.status,
+    statusDetail: String(payment.status_detail ?? ""),
+    externalReference: String(payment.external_reference ?? ""),
+    totalCents,
+    currency: String(payment.currency_id ?? ""),
+    paymentMethod: String(payment.payment_method_id ?? ""),
+    attemptId: String(record(payment.metadata).seolleda_pix_attempt ?? ""),
+    approvedAtMs: dateMs(payment.date_approved),
+    expiresAtMs: dateMs(payment.date_of_expiration),
+    qrCode: typeof qr.qr_code === "string" ? qr.qr_code : "",
+    qrCodeBase64: typeof qr.qr_code_base64 === "string" ?
+      qr.qr_code_base64 : "",
+    ticketUrl: typeof qr.ticket_url === "string" ? qr.ticket_url : "",
   };
+}
 
-  const response = await fetch(MP_ORDERS_URL, {
+/** @param {string} paymentId Payment identifier.
+ * @param {string} accessToken Server secret.
+ * @return {Promise<MpPayment>} Current provider payment.
+ */
+export async function getMpPayment(
+  paymentId: string, accessToken: string,
+): Promise<MpPayment> {
+  if (!/^\d+$/.test(paymentId)) {
+    throw new Error("MP_INVALID_ID");
+  }
+  const response = await fetch(`${MP_PAYMENTS_URL}/${paymentId}`, {
+    headers: {Authorization: `Bearer ${accessToken}`},
+    signal: AbortSignal.timeout(15000),
+  });
+  if (!response.ok) {
+    await reportHttpError(response);
+    throw new Error(`MP_HTTP_${response.status}`);
+  }
+  const payment = parsePayment(await response.json());
+  if (payment.paymentId !== paymentId) throw new Error("MP_ID_MISMATCH");
+  return payment;
+}
+
+/** @param {object} params Immutable request persisted before calling MP.
+ * @return {Promise<MpPayment>} Created or idempotently recovered payment.
+ */
+export async function createMpPixPayment(params: {
+  saleId: string;
+  totalCents: number;
+  payerEmail: string;
+  accessToken: string;
+  idempotencyKey: string;
+}): Promise<MpPayment> {
+  const response = await fetch(MP_PAYMENTS_URL, {
     method: "POST",
     headers: {
-      "Authorization": `Bearer ${accessToken}`,
+      "Authorization": `Bearer ${params.accessToken}`,
       "Content-Type": "application/json",
-      "X-Idempotency-Key": idempotencyKey,
+      "X-Idempotency-Key": params.idempotencyKey,
     },
-    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(15000),
+    body: JSON.stringify({
+      transaction_amount: params.totalCents / 100,
+      payment_method_id: "pix",
+      external_reference: params.saleId,
+      metadata: {seolleda_pix_attempt: params.idempotencyKey},
+      payer: {email: params.payerEmail},
+    }),
   });
-
   if (!response.ok) {
-    // Loga apenas informações não sensíveis para diagnóstico.
-    let errorCode: string | undefined;
-    try {
-      const errorBody = (await response.json()) as Record<string, unknown>;
-      errorCode =
-        typeof errorBody?.error === "string" ? errorBody.error : undefined;
-    } catch {
-      // ignora erro ao parsear body de erro
-    }
-    console.error("Mercado Pago Orders API error", {
-      saleId,
-      httpStatus: response.status,
-      errorCode,
-    });
-    throw new Error(`MP_API_ERROR:${response.status}`);
+    await reportHttpError(response);
+    throw new Error(`MP_HTTP_${response.status}`);
   }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const order = (await response.json()) as any;
-
-  // Extrai apenas os campos necessários — nunca retorna o objeto completo.
-  const payment = order?.transactions?.payments?.[0];
-  const paymentMethod = payment?.payment_method ?? {};
-
-  return {
-    orderId: String(order?.id ?? ""),
-    orderStatus: String(order?.status ?? ""),
-    orderStatusDetail: String(order?.status_detail ?? ""),
-    paymentId: String(payment?.id ?? ""),
-    paymentStatus: String(payment?.status ?? ""),
-    paymentStatusDetail: String(payment?.status_detail ?? ""),
-    qrCode: String(paymentMethod?.qr_code ?? ""),
-    qrCodeBase64: String(paymentMethod?.qr_code_base64 ?? ""),
-    ticketUrl: String(paymentMethod?.ticket_url ?? ""),
-  };
+  const payment = parsePayment(await response.json());
+  if (payment.externalReference !== params.saleId ||
+      payment.totalCents !== params.totalCents ||
+      payment.currency !== "BRL" || payment.paymentMethod !== "pix") {
+    throw new Error("MP_PAYMENT_MISMATCH");
+  }
+  return payment;
 }

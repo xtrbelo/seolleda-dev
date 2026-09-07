@@ -1,3 +1,4 @@
+import {createHash, randomBytes} from "crypto";
 import {FieldValue, Timestamp} from "firebase-admin/firestore";
 import {onCall, HttpsError} from "firebase-functions/v2/https";
 import {firestore} from "../lib/firebaseAdmin.js";
@@ -11,6 +12,39 @@ const MAX_DISTINCT_ITEMS = 50;
 const MAX_QUANTITY_PER_ITEM = 1000;
 const MAX_ID_LENGTH = 128;
 const SALE_EXPIRATION_MINUTES = 15;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/**
+ * Validates a Brazilian CPF (Cadastro de Pessoas Físicas).
+ * @param {string} cpf The CPF string to validate.
+ * @return {boolean} True if the CPF is valid, false otherwise.
+ */
+function isValidCPF(cpf: string): boolean {
+  if (typeof cpf !== "string") return false;
+  const strCPF = cpf.replace(/[^\d]/g, "");
+  if (strCPF.length !== 11) return false;
+  if (/^(\d)\1+$/.test(strCPF)) return false;
+
+  let sum = 0;
+  let remainder;
+
+  for (let i = 1; i <= 9; i++) {
+    sum += parseInt(strCPF.substring(i - 1, i)) * (11 - i);
+  }
+  remainder = (sum * 10) % 11;
+  if (remainder === 10 || remainder === 11) remainder = 0;
+  if (remainder !== parseInt(strCPF.substring(9, 10))) return false;
+
+  sum = 0;
+  for (let i = 1; i <= 10; i++) {
+    sum += parseInt(strCPF.substring(i - 1, i)) * (12 - i);
+  }
+  remainder = (sum * 10) % 11;
+  if (remainder === 10 || remainder === 11) remainder = 0;
+  if (remainder !== parseInt(strCPF.substring(10, 11))) return false;
+
+  return true;
+}
 
 /** Checks whether an untrusted value can be inspected as an object.
  * @param {unknown} value Value to inspect.
@@ -63,7 +97,30 @@ function validateInput(data: unknown): CreateSaleData {
   if (new Set(items.map((item) => item.productId)).size !== items.length) {
     throw new HttpsError("invalid-argument", "Não envie produtos repetidos.");
   }
-  return {terminalId: data.terminalId.trim(), items};
+
+  const result: CreateSaleData = {terminalId: data.terminalId.trim(), items};
+
+  if ("customerDocument" in data && typeof data.customerDocument === "string") {
+    const cpf = data.customerDocument.replace(/[^\d]/g, "");
+    if (cpf && !isValidCPF(cpf)) {
+      throw new HttpsError("invalid-argument", "CPF inválido.");
+    }
+    if (cpf) {
+      result.customerDocument = cpf;
+    }
+  }
+
+  if ("customerEmail" in data && typeof data.customerEmail === "string") {
+    const email = data.customerEmail.trim().toLowerCase();
+    if (email && !EMAIL_REGEX.test(email)) {
+      throw new HttpsError("invalid-argument", "E-mail inválido.");
+    }
+    if (email) {
+      result.customerEmail = email;
+    }
+  }
+
+  return result;
 }
 
 /** Converts unexpected failures to safe client errors.
@@ -178,15 +235,20 @@ export const createSale = onCall(
       }
 
       const saleReference = firestore.collection("sales").doc();
+      const statusToken = randomBytes(32).toString("base64url");
+      const statusTokenHash = createHash("sha256")
+        .update(statusToken)
+        .digest("hex");
       const now = Timestamp.now();
       const expiresAt = Timestamp.fromMillis(
         now.toMillis() + SALE_EXPIRATION_MINUTES * 60 * 1000,
       );
-      await saleReference.set({
+      const saleData: Record<string, unknown> = {
         storeId,
         terminalId: input.terminalId,
         status: "PENDING_PAYMENT",
         paymentStatus: "PENDING",
+        paymentStatusTokenHash: statusTokenHash,
         items: saleItems,
         itemsCount: saleItems.reduce((count, item) => count + item.quantity, 0),
         subtotalCents,
@@ -195,10 +257,20 @@ export const createSale = onCall(
         updatedAt: FieldValue.serverTimestamp(),
         expiresAt,
         source: "SELF_CHECKOUT",
-      });
+      };
+
+      if (input.customerDocument) {
+        saleData.customerDocument = input.customerDocument;
+      }
+      if (input.customerEmail) {
+        saleData.customerEmail = input.customerEmail;
+      }
+
+      await saleReference.set(saleData);
 
       return {
         saleId: saleReference.id,
+        statusToken,
         totalCents: subtotalCents,
         status: "PENDING_PAYMENT",
         expiresAt,

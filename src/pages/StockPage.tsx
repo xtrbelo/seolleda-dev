@@ -53,6 +53,7 @@ function StockPage() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [quantity, setQuantity] = useState("");
   const [reason, setReason] = useState("");
+  const [operationId, setOperationId] = useState("");
   const [formError, setFormError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [history, setHistory] = useState<StockMovement[]>([]);
@@ -97,6 +98,7 @@ function StockPage() {
 
   function openMovement(product: Product, type: MovementModal) {
     setSelectedProduct(product);
+    setOperationId(crypto.randomUUID());
     setModal(type);
     setQuantity("");
     setReason("");
@@ -130,6 +132,7 @@ function StockPage() {
     try {
       await recordStockMovement({
         storeId,
+        operationId,
         product: selectedProduct,
         type: modal,
         quantity: parsedQuantity,
@@ -383,7 +386,7 @@ function StockPage() {
                 min="0"
                 step="1"
                 value={quantity}
-                onChange={(event) => setQuantity(event.target.value)}
+                onChange={(event) => { setQuantity(event.target.value); setOperationId(crypto.randomUUID()); }}
                 required
                 autoFocus
               />
@@ -406,7 +409,7 @@ function StockPage() {
                 id="movement-reason"
                 rows={3}
                 value={reason}
-                onChange={(event) => setReason(event.target.value)}
+                onChange={(event) => { setReason(event.target.value); setOperationId(crypto.randomUUID()); }}
                 required
               />
               {formError && (

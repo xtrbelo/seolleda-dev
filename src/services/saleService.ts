@@ -25,26 +25,60 @@ export type CheckoutProduct = {
 type CreateSaleRequest = {
   terminalId: string;
   items: Array<Pick<CartItem, "productId" | "quantity">>;
+  customerDocument?: string;
+  customerEmail?: string;
 };
 
 export type CreateSaleResponse = {
   saleId: string;
+  statusToken: string;
   totalCents: number;
   status: "PENDING_PAYMENT";
   expiresAt: Timestamp;
 };
 
+export type SalePaymentState =
+  | "PENDING"
+  | "APPROVED"
+  | "REVIEW_REQUIRED"
+  | "EXPIRED";
+
+export async function getSalePaymentStatus(
+  saleId: string,
+  statusToken: string,
+): Promise<SalePaymentState> {
+  const callable = httpsCallable<
+    { saleId: string; statusToken: string },
+    { state: SalePaymentState }
+  >(functions, "getSalePaymentStatus");
+  const response = await callable({ saleId, statusToken });
+  return response.data.state;
+}
+
 export async function createSale(
   items: CartItem[],
+  customerDocument?: string,
+  customerEmail?: string
 ): Promise<CreateSaleResponse> {
   const callable = httpsCallable<CreateSaleRequest, CreateSaleResponse>(
     functions,
     "createSale",
   );
-  const response = await callable({
+
+  const payload: CreateSaleRequest = {
     terminalId: getTerminalId(),
     items: items.map(({ productId, quantity }) => ({ productId, quantity })),
-  });
+  };
+
+  if (customerDocument) {
+    payload.customerDocument = customerDocument.replace(/[^\d]/g, "");
+  }
+
+  if (customerEmail) {
+    payload.customerEmail = customerEmail.trim().toLowerCase();
+  }
+
+  const response = await callable(payload);
   return response.data;
 }
 

@@ -1,234 +1,200 @@
-/**
- * createPixPayment — Callable Cloud Function v2
- *
- * Cria uma cobrança Pix no Mercado Pago via Orders API para uma venda
- * existente em status PENDING_PAYMENT.
- *
- * Contrato:
- *   - Nunca altera inventory ou stockMovements.
- *   - Nunca marca a venda como PAID.
- *   - Nunca expõe o MP_ACCESS_TOKEN ao frontend.
- *   - O valor da cobrança é sempre lido do Firestore (backend), nunca do
- *     payload enviado pelo navegador.
- */
-
+import {randomUUID} from "crypto";
 import {Timestamp, FieldValue} from "firebase-admin/firestore";
 import {defineSecret} from "firebase-functions/params";
 import {onCall, HttpsError} from "firebase-functions/v2/https";
 import {firestore} from "../lib/firebaseAdmin.js";
-import type {
-  CreatePixPaymentData,
-  CreatePixPaymentResponse,
-} from "../types/sale.js";
-import {createMpPixOrder} from "./mercadoPagoClient.js";
+import type {CreatePixPaymentResponse} from "../types/sale.js";
+import {createMpPixPayment, getMpPayment} from "./mercadoPagoClient.js";
+import {saleDeadline} from "./pixPolicy.js";
 
-// ---------------------------------------------------------------------------
-// Secret
-// ---------------------------------------------------------------------------
-
-const MP_ACCESS_TOKEN = defineSecret("MP_ACCESS_TOKEN");
-
-// ---------------------------------------------------------------------------
-// Validação de input
-// ---------------------------------------------------------------------------
-
+const accessToken = defineSecret("MERCADO_PAGO_ACCESS_TOKEN");
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const MAX_ID_LENGTH = 128;
-const PIX_EXPIRATION_MINUTES = 30;
+const DEFAULT_PAYER_EMAIL = "seolledadev@gmail.com";
 
-/**
- * Verifica e normaliza o payload recebido do frontend.
- * @param {unknown} data Payload recebido da chamada callable.
- * @return {CreatePixPaymentData} Dados validados e normalizados.
+/** @param {string} saleId Sale identifier.
+ * @param {object} sale Stored sale.
+ * @return {CreatePixPaymentResponse} Public QR data.
  */
-function validateInput(data: unknown): CreatePixPaymentData {
-  if (typeof data !== "object" || data === null) {
-    throw new HttpsError("invalid-argument", "Dados inválidos.");
+function responseFor(
+  saleId: string, sale: Record<string, unknown>,
+): CreatePixPaymentResponse {
+  const deadline = saleDeadline(sale);
+  const expiresAtMs = sale.pixExpiresAt instanceof Timestamp ?
+    Math.min(deadline, sale.pixExpiresAt.toMillis()) : deadline;
+  if (Date.now() >= expiresAtMs) {
+    throw new HttpsError(
+      "deadline-exceeded", "Venda expirada. Inicie outra compra.",
+    );
   }
-  const payload = data as Record<string, unknown>;
-
-  // saleId
-  if (
-    typeof payload.saleId !== "string" ||
-    !payload.saleId.trim() ||
-    payload.saleId.length > MAX_ID_LENGTH
-  ) {
-    throw new HttpsError("invalid-argument", "Venda inválida.");
+  const providerStatus = String(sale.mercadoPagoPaymentStatus ??
+    String(sale.paymentStatus ?? "pending").toLowerCase());
+  if (!["pending", "in_process"].includes(providerStatus) ||
+      sale.paymentStatus === "APPROVED" || sale.status !== "PENDING_PAYMENT") {
+    throw new HttpsError(
+      "failed-precondition", "Pagamento indisponível ou já processado.",
+    );
   }
-
-  // payerEmail — normaliza e valida minimamente
-  const rawEmail =
-    typeof payload.payerEmail === "string" ? payload.payerEmail : "";
-  const payerEmail = rawEmail.trim().toLowerCase();
-  if (!EMAIL_REGEX.test(payerEmail)) {
-    throw new HttpsError("invalid-argument", "Informe um e-mail válido.");
+  if (!sale.pixQrCode) {
+    throw new HttpsError(
+      "unavailable", "QR Pix indisponível. Tente novamente.",
+    );
   }
-
   return {
-    saleId: payload.saleId.trim(),
-    payerEmail,
+    saleId,
+    paymentId: String(sale.mercadoPagoPaymentId),
+    status: providerStatus,
+    qrCode: String(sale.pixQrCode),
+    qrCodeBase64: String(sale.pixQrCodeBase64 ?? ""),
+    ticketUrl: String(sale.pixTicketUrl ?? ""),
+    totalCents: Number(sale.totalCents),
+    expiresAtMs,
   };
 }
 
-/**
- * Converte erros inesperados em HttpsError segura para o cliente.
- * @param {unknown} error Erro capturado.
- * @return {HttpsError} Erro seguro para retornar ao cliente.
- */
-function getFriendlyError(error: unknown): HttpsError {
-  if (error instanceof HttpsError) return error;
-  console.error("Unexpected error in createPixPayment", error);
-  return new HttpsError(
-    "internal",
-    "Não foi possível gerar o Pix. Tente novamente.",
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Cloud Function
-// ---------------------------------------------------------------------------
-
 export const createPixPayment = onCall(
-  {
-    region: "southamerica-east1",
-    secrets: [MP_ACCESS_TOKEN],
-  },
+  {region: "southamerica-east1", secrets: [accessToken]},
   async (request): Promise<CreatePixPaymentResponse> => {
+    let stage = "validate_input";
     try {
-      // 1. Valida input do frontend
-      const input = validateInput(request.data);
-      const {saleId, payerEmail} = input;
-
-      // 2. Busca a venda no Firestore
+      const data = request.data as Record<string, unknown> | null;
+      const saleId = typeof data?.saleId === "string" ? data.saleId.trim() : "";
+      const email = typeof data?.payerEmail === "string" ?
+        data.payerEmail.trim().toLowerCase() : "";
+      if (!saleId || saleId.length > 128 || saleId.includes("/")) {
+        throw new HttpsError("invalid-argument", "Venda inválida.");
+      }
+      if (email && (email.length > 254 || !EMAIL_REGEX.test(email))) {
+        throw new HttpsError("invalid-argument", "Informe um e-mail válido.");
+      }
       const saleRef = firestore.collection("sales").doc(saleId);
-      const saleSnap = await saleRef.get();
-
-      if (!saleSnap.exists) {
-        throw new HttpsError("not-found", "Venda não encontrada.");
-      }
-
-      const sale = saleSnap.data()!;
-
-      // 3. Valida estado da venda
-      if (sale.status !== "PENDING_PAYMENT") {
-        throw new HttpsError(
-          "failed-precondition",
-          "Esta venda não está aguardando pagamento.",
-        );
-      }
-      if (sale.paymentStatus !== "PENDING") {
-        throw new HttpsError(
-          "failed-precondition",
-          "Esta venda já possui pagamento em processamento.",
-        );
-      }
-      if (
-        typeof sale.totalCents !== "number" ||
-        !Number.isInteger(sale.totalCents) ||
-        sale.totalCents <= 0
-      ) {
-        throw new HttpsError("failed-precondition", "Total da venda inválido.");
-      }
-      if (typeof sale.terminalId !== "string" || !sale.terminalId) {
-        throw new HttpsError(
-          "failed-precondition",
-          "Terminal não identificado.",
-        );
-      }
-      if (typeof sale.storeId !== "string" || !sale.storeId) {
-        throw new HttpsError(
-          "failed-precondition",
-          "Loja não identificada.",
-        );
-      }
-
-      const {totalCents} = sale;
-
-      // 4. Idempotência local
-      // Se já existe uma Order PIX criada para esta venda e ela ainda está
-      // dentro do prazo de validade, reutiliza os dados salvos sem criar
-      // uma nova cobrança no Mercado Pago.
-      if (sale.mercadoPagoOrderId && sale.pixExpiresAt instanceof Timestamp) {
-        const expiresAtMs = sale.pixExpiresAt.toMillis();
-        const nowMs = Date.now();
-        if (expiresAtMs > nowMs) {
-          console.info("createPixPayment: reusing existing PIX order", {
-            saleId,
-            mercadoPagoOrderId: sale.mercadoPagoOrderId,
-          });
-          return {
-            orderId: String(sale.mercadoPagoOrderId),
-            paymentId: String(sale.mercadoPagoPaymentId ?? ""),
-            status: String(sale.pixStatus ?? ""),
-            statusDetail: String(sale.pixStatusDetail ?? ""),
-            qrCode: String(sale.pixQrCode ?? ""),
-            // qrCodeBase64 não é armazenado — retorna vazio na reutilização
-            qrCodeBase64: "",
-            ticketUrl: String(sale.pixTicketUrl ?? ""),
-            expiresAt: sale.pixExpiresAt,
-          };
+      // One immutable attempt per sale. Transactions serialize callers;
+      // the provider key protects concurrent POSTs and uncertain retries.
+      stage = "prepare_attempt";
+      const prepared = await firestore.runTransaction(async (transaction) => {
+        const snap = await transaction.get(saleRef);
+        if (!snap.exists) {
+          throw new HttpsError("not-found", "Venda não encontrada.");
         }
-      }
-
-      // 5. Cria a Order no Mercado Pago
-      const accessToken = MP_ACCESS_TOKEN.value();
-      let mpResult;
-      try {
-        mpResult = await createMpPixOrder({
-          saleId,
-          totalCents,
-          payerEmail,
-          accessToken,
+        const sale = snap.data()!;
+        if (sale.status !== "PENDING_PAYMENT" ||
+            sale.paymentStatus === "APPROVED") {
+          throw new HttpsError("failed-precondition", "Venda não disponível.");
+        }
+        if (Date.now() >= saleDeadline(sale)) {
+          throw new HttpsError(
+            "deadline-exceeded", "Venda expirada. Inicie outra compra.",
+          );
+        }
+        if (!Number.isSafeInteger(sale.totalCents) || sale.totalCents <= 0) {
+          throw new HttpsError(
+            "failed-precondition", "Total da venda inválido.",
+          );
+        }
+        if (sale.mercadoPagoPaymentId && sale.pixQrCode) {
+          return {cached: responseFor(saleId, sale), attempt: null};
+        }
+        // Never guess the payload of an ambiguous legacy attempt.
+        if ((sale.pixAttemptId || sale.pixIdempotencyKey) &&
+            (!sale.pixPayerEmail || sale.pixTotalCents !== sale.totalCents ||
+             !sale.pixAttemptId || !sale.pixIdempotencyKey)) {
+          throw new HttpsError(
+            "failed-precondition",
+            "Tentativa antiga requer revisão do pagamento.",
+          );
+        }
+        const payerEmail = sale.pixPayerEmail || email || sale.customerEmail ||
+          DEFAULT_PAYER_EMAIL;
+        if (typeof payerEmail !== "string" || payerEmail.length > 254 ||
+            !EMAIL_REGEX.test(payerEmail)) {
+          throw new HttpsError("invalid-argument", "Informe um e-mail válido.");
+        }
+        const pixAttemptId = sale.pixAttemptId || randomUUID();
+        const idempotencyKey = sale.pixIdempotencyKey || pixAttemptId;
+        transaction.update(saleRef, {
+          pixAttemptId,
+          pixIdempotencyKey: idempotencyKey,
+          pixPayerEmail: payerEmail,
+          pixTotalCents: sale.totalCents,
+          paymentProvider: "MERCADO_PAGO",
+          paymentMethod: "PIX",
+          updatedAt: FieldValue.serverTimestamp(),
         });
-      } catch {
-        console.error("createPixPayment: MP API call failed", {saleId});
-        throw new HttpsError(
-          "internal",
-          "Não foi possível gerar o Pix. Tente novamente.",
-        );
+        return {
+          cached: null,
+          attempt: {
+            payerEmail, idempotencyKey, totalCents: sale.totalCents,
+            paymentId: sale.mercadoPagoPaymentId as string | undefined,
+          },
+        };
+      });
+      if (prepared.cached) return prepared.cached;
+      const attempt = prepared.attempt!;
+      stage = "mercado_pago";
+      const payment = attempt.paymentId ?
+        await getMpPayment(String(attempt.paymentId), accessToken.value()) :
+        await createMpPixPayment({
+          saleId, ...attempt, accessToken: accessToken.value(),
+        });
+      if (payment.externalReference !== saleId ||
+          payment.totalCents !== attempt.totalCents ||
+          payment.currency !== "BRL" || payment.paymentMethod !== "pix") {
+        throw new HttpsError("internal", "Pagamento divergente.");
       }
-
-      // 6. Calcula timestamps
-      const now = Timestamp.now();
-      const pixExpiresAt = Timestamp.fromMillis(
-        now.toMillis() + PIX_EXPIRATION_MINUTES * 60 * 1000,
-      );
-
-      // 7. Salva no Firestore
-      // Não altera: status, paymentStatus, inventory, stockMovements.
-      // qrCodeBase64 não é salvo (aumentaria o tamanho do documento);
-      // está disponível apenas na resposta imediata ao frontend.
-      await saleRef.update({
-        paymentMethod: "PIX",
-        mercadoPagoOrderId: mpResult.orderId,
-        mercadoPagoPaymentId: mpResult.paymentId,
-        pixStatus: mpResult.paymentStatus,
-        pixStatusDetail: mpResult.paymentStatusDetail,
-        pixCreatedAt: now,
-        pixExpiresAt,
-        pixQrCode: mpResult.qrCode,
-        pixTicketUrl: mpResult.ticketUrl,
-        updatedAt: FieldValue.serverTimestamp(),
+      // Never overwrite webhook approval with a delayed creation response.
+      stage = "persist_payment";
+      const saved = await firestore.runTransaction(async (transaction) => {
+        const snap = await transaction.get(saleRef);
+        const sale = snap.data();
+        if (!sale || sale.pixIdempotencyKey !== attempt.idempotencyKey) {
+          throw new HttpsError("aborted", "Tentativa de pagamento alterada.");
+        }
+        if (sale.mercadoPagoPaymentId) {
+          if (String(sale.mercadoPagoPaymentId) !== payment.paymentId) {
+            throw new HttpsError("aborted", "Pagamento divergente.");
+          }
+        }
+        const update = {
+          mercadoPagoPaymentId: payment.paymentId,
+          ...(sale.mercadoPagoPaymentStatus ? {} : {
+            mercadoPagoPaymentStatus: payment.status,
+            mercadoPagoPaymentStatusDetail: payment.statusDetail,
+          }),
+          pixQrCode: payment.qrCode,
+          pixQrCodeBase64: payment.qrCodeBase64,
+          pixTicketUrl: payment.ticketUrl,
+          pixCreatedAt: FieldValue.serverTimestamp(),
+          pixExpiresAt: Timestamp.fromMillis(Math.min(
+            saleDeadline(sale), payment.expiresAtMs ?? Infinity,
+          )),
+          mercadoPagoExpiresAt: payment.expiresAtMs === null ? null :
+            Timestamp.fromMillis(payment.expiresAtMs),
+          updatedAt: FieldValue.serverTimestamp(),
+        };
+        transaction.update(saleRef, update);
+        return {...sale, ...update};
       });
-
-      console.info("createPixPayment: PIX order created", {
-        saleId,
-        mercadoPagoOrderId: mpResult.orderId,
-      });
-
-      // 8. Retorna apenas campos seguros ao frontend
-      return {
-        orderId: mpResult.orderId,
-        paymentId: mpResult.paymentId,
-        status: mpResult.paymentStatus,
-        statusDetail: mpResult.paymentStatusDetail,
-        qrCode: mpResult.qrCode,
-        qrCodeBase64: mpResult.qrCodeBase64,
-        ticketUrl: mpResult.ticketUrl,
-        expiresAt: pixExpiresAt,
-      };
+      return responseFor(saleId, saved);
     } catch (error) {
-      throw getFriendlyError(error);
+      if (error instanceof HttpsError) throw error;
+      const message = error instanceof Error ? error.message : "";
+      const knownErrors = [
+        "MP_INVALID_ID", "MP_INVALID_RESPONSE", "MP_INVALID_AMOUNT",
+        "MP_ID_MISMATCH", "MP_PAYMENT_MISMATCH",
+      ];
+      const reason = knownErrors.includes(message) ||
+        /^MP_HTTP_\d{3}$/.test(message) ? message :
+        error instanceof Error && error.name === "TimeoutError" ?
+          "TIMEOUT" : "UNCLASSIFIED";
+      const code = typeof error === "object" && error !== null &&
+        "code" in error ? error.code : undefined;
+      console.error("createPixPayment: operation failed", {
+        stage, reason,
+        ...(typeof code === "number" && Number.isInteger(code) ?
+          {code} : {}),
+      });
+      throw new HttpsError(
+        "internal", "Não foi possível gerar o Pix. Tente novamente.",
+      );
     }
   },
 );

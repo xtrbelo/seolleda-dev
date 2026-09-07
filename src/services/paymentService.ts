@@ -1,5 +1,4 @@
 import { getFunctions, httpsCallable } from "firebase/functions";
-import type { Timestamp } from "firebase/firestore";
 import { app } from "../lib/firebase";
 
 const functions = getFunctions(app, "southamerica-east1");
@@ -10,19 +9,18 @@ const functions = getFunctions(app, "southamerica-east1");
 
 type CreatePixPaymentRequest = {
   saleId: string;
-  payerEmail: string;
+  payerEmail?: string;
 };
 
 export type CreatePixPaymentResponse = {
-  orderId: string;
+  saleId: string;
   paymentId: string;
   status: string;
-  statusDetail: string;
   qrCode: string;
-  /** Pode estar vazio em ambiente de teste do Mercado Pago. */
   qrCodeBase64: string;
   ticketUrl: string;
-  expiresAt: Timestamp;
+  totalCents: number;
+  expiresAtMs: number;
 };
 
 // ---------------------------------------------------------------------------
@@ -30,17 +28,13 @@ export type CreatePixPaymentResponse = {
 // ---------------------------------------------------------------------------
 
 /**
- * Gera uma cobrança Pix para uma venda existente.
+ * Gera uma cobrança Pix direta para uma venda existente via Mercado Pago.
  *
- * O valor da cobrança é sempre calculado no backend — nunca enviamos
- * preço ou total a partir do frontend.
- *
- * O MP_ACCESS_TOKEN permanece exclusivamente no backend (Cloud Function);
- * o frontend nunca tem acesso a ele.
+ * O valor da cobrança é sempre calculado no backend.
  */
 export async function createPixPayment(
   saleId: string,
-  payerEmail: string,
+  payerEmail?: string,
 ): Promise<CreatePixPaymentResponse> {
   const callable = httpsCallable<
     CreatePixPaymentRequest,

@@ -15,6 +15,7 @@ import {
 import CheckoutPage from "./pages/CheckoutPage";
 import CategoriesPage from "./pages/CategoriesPage";
 import ProductsPage from "./pages/ProductsPage";
+import { APP_VERSION, APP_VERSION_LABEL } from "./lib/appVersion";
 
 function App() {
   return (
@@ -41,6 +42,9 @@ function App() {
           </Route>
           <Route path="*" element={<Navigate to="/checkout" replace />} />
         </Routes>
+        <small className="system-version" aria-label={`Versão do sistema ${APP_VERSION}`}>
+          {APP_VERSION_LABEL}
+        </small>
       </BrowserRouter>
     </AuthProvider>
   );

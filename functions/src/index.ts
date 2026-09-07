@@ -10,6 +10,8 @@
 import {setGlobalOptions} from "firebase-functions";
 import {getCheckoutProduct} from "./checkout/getCheckoutProduct.js";
 import {createPixPayment} from "./payments/createPixPayment.js";
+import {getSalePaymentStatus} from "./payments/getSalePaymentStatus.js";
+import {mercadoPagoWebhook} from "./payments/mercadoPagoWebhook.js";
 import {createSale} from "./sales/createSale.js";
 // import {onRequest} from "firebase-functions/https";
 // import * as logger from "firebase-functions/logger";
@@ -29,9 +31,16 @@ import {createSale} from "./sales/createSale.js";
 // this will be the maximum concurrent request count.
 setGlobalOptions({maxInstances: 10});
 
-export {createSale, getCheckoutProduct, createPixPayment};
+export {
+  createSale,
+  getCheckoutProduct,
+  createPixPayment,
+  getSalePaymentStatus,
+  mercadoPagoWebhook,
+};
 
 // export const helloWorld = onRequest((request, response) => {
 //   logger.info("Hello logs!", {structuredData: true});
 //   response.send("Hello from Firebase!");
 // });
+export {manageInventory} from "./sales/manageInventory.js";
