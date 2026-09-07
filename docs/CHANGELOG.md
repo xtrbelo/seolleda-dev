@@ -1,8 +1,8 @@
 # Histórico de versões
 
-## 1A — Base inicial consolidada — fechamento pendente
+## 1A — Publicada em DEV — 07/09/2026
 
-Identificação adotada em 07/09/2026. Ainda sem commit/tag de release e sem publicação completa confirmada desta versão.
+Código publicado: 9d5a33af90ca7a92a2464b94173b0b67c9ed39e8. Projeto: seolleda-dev. Site: https://seolleda-dev.web.app. Tag de fechamento: release-1a (inclui registro documental pós-deploy).
 
 - Base existente de autenticação, categorias, produtos e checkout.
 - Pix implementado; usuário confirmou sua implementação.
@@ -11,7 +11,7 @@ Identificação adotada em 07/09/2026. Ainda sem commit/tag de release e sem pub
 - Versão funcional centralizada e exibida no canto inferior esquerdo de todas as telas.
 - Processo permanente de fases, hotfixes, validação e publicação documentado.
 
-Validação anterior do estoque: cinco testes simulados de estoque e 17 testes Pix aprovados. Builds/lints sem erros; avisos existentes de frontend. Indicador de versão e documentação ainda locais. Hosting não publicado nesta consolidação. Revisar alterações preexistentes antes de fechar a release.
+Validação anterior do estoque: cinco testes simulados de estoque e 17 testes Pix aprovados. Builds/lints sem erros; avisos existentes de frontend. Validação final: 22 testes aprovados, builds/lints sem erros e diff-check aprovado. Hosting e createSale, createPixPayment, getSalePaymentStatus, mercadoPagoWebhook e manageInventory publicados com sucesso. Regras não alteradas. HTTP 200 e HTML correspondente ao build confirmados. Homologação funcional pós-publicação ainda não realizada; estoque havia sido homologado pelo usuário antes do deploy.
 
 ## Próximas versões
 

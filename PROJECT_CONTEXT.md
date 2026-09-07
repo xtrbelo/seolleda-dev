@@ -283,3 +283,7 @@ Adicionado indicador fixo no canto inferior esquerdo em todas as telas, lendo a 
 ## Processo de versões — 07/09/2026
 
 Por solicitação do usuário, seguir fases como no Santa Fé. A versão funcional agora vem de src/lib/appVersion.ts e começa em 1A; substitui a identificação anterior baseada em package.json. Regras permanentes em AGENTS.md, ciclo em docs/RELEASES.md e histórico em docs/CHANGELOG.md. A fase 1A está em consolidação, sem release Git ou Hosting publicada; estoque já homologado. Fechar 1A antes de iniciar 1B (Vendas), salvo nova orientação. Nenhum commit, tag ou deploy realizado nesta estruturação.
+
+## Publicação 1A — 07/09/2026
+
+Usuário autorizou publicação. Código 9d5a33af90ca7a92a2464b94173b0b67c9ed39e8, repositório https://github.com/xtrbelo/seolleda-dev. Hosting e cinco Functions (createSale, createPixPayment, getSalePaymentStatus, mercadoPagoWebhook, manageInventory) publicados com sucesso no seolleda-dev. Firebase confirmou Deploy complete. Site https://seolleda-dev.web.app respondeu HTTP 200 e entregou HTML idêntico ao build; bundle acessível com versão 1A. Sem alteração de regras. Validação final: 22 testes, builds/lints sem erros, diff-check aprovado. Estoque homologado previamente; teste funcional pós-publicação pendente. Documentação pós-deploy compõe o fechamento release-1a. Próxima fase: 1B, gestão de Vendas. Este registro substitui as pendências históricas de publicação 1A acima.

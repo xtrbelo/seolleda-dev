@@ -17,4 +17,4 @@
 
 ## Estado inicial
 
-Base funcional identificada como 1A; fechamento Git e publicação completa ainda pendentes. Estoque homologado pelo usuário. Próxima fase planejada: 1B — Vendas. Detalhes em docs/RELEASES.md.
+Versão 1A publicada no seolleda-dev em 07/09/2026. Repositório: https://github.com/xtrbelo/seolleda-dev. Base de releases: main; tag release-1a. Estoque homologado pelo usuário. Próxima fase planejada: 1B — Vendas. Detalhes em docs/RELEASES.md.
