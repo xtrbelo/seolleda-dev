@@ -1,6 +1,6 @@
 # Histórico de versões
 
-## 1D — Configurações — Homologada; publicação final pendente
+## 1D — Configurações — Publicada em HML
 
 - Usuário homologou o fluxo inicial. Ajuste posterior: identificação de novos terminais gerada automaticamente no backend; IDs existentes preservados. Identificação automática testada com sucesso pelo usuário.
 
@@ -9,7 +9,7 @@
 - Callable autenticada manageSettings, com validação e registro de alterações em settingsAudit na mesma transação.
 - Mantém o padrão de acesso administrativo existente (usuário autenticado); não introduz papéis. Sem mudanças nas regras.
 - Novos terminais começam inativos. ID existente não pode ser renomeado. Cadastro não configura o dispositivo; checkout ainda usa VITE_TERMINAL_ID.
-- Cartão adiado pelo usuário. Build, lint, testes e homologação pendentes, a executar no VS Code.
+- Cartão adiado. Validações e homologação confirmadas pelo usuário. Hosting publicado no seolleda-dev (HML), conforme saída Deploy complete. manageSettings já havia sido publicada para homologação. Commit e tag não verificados nesta confirmação.
 
 ## 1C.1 — Responsividade e logo oficial — Publicada em HML
 
