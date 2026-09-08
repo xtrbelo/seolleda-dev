@@ -8,7 +8,7 @@
 - Regras do Firestore deixam de usar apenas autenticação e passam a exigir o papel correspondente para leitura e escrita.
 - Conta `jpbelooo@gmail.com` cadastrada no projeto `seolleda-dev` com claim `roles: ["admin"]`; é necessário sair e entrar novamente para renovar o token.
 - Frontend/backend compilados, lint do backend aprovado e suíte existente com 22 testes aprovados. Regras compiladas e liberadas; `manageInventory` e `manageSettings` atualizadas em `southamerica-east1`; Hosting publicado em `seolleda-dev` com `Deploy complete` em 07/09/2026.
-- Commit publicado: `bb2f0a2`. Homologação pós-deploy e migração de outros usuários permanecem pendentes. Tag `release-1f` ainda não criada.
+- Commit publicado: `bb2f0a2`. Usuário confirmou a homologação pós-deploy da 1F. Migração de outros usuários permanece pendente. Tag `release-1f` ainda não criada.
 
 ## 1E — Preferências de alertas de estoque — Publicada em HML
 
