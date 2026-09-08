@@ -6,7 +6,7 @@
 - Nova Function autenticada `listAdminSales` exige papel de vendas ou relatórios e retorna somente os campos operacionais necessários.
 - CPF e e-mail do cliente nunca são enviados ao painel; o identificador do Mercado Pago só é retornado ao administrador.
 - Paginação, período e filtros continuam sendo aplicados no backend, reduzindo a exposição e a transferência de dados.
-- Regras do Firestore bloqueiam leituras diretas de `sales`; validação e homologação pendentes. Nenhum deploy da 1H realizado.
+- Regras do Firestore bloqueiam leituras diretas de `sales`. Commit `a44991b` enviado para `main`; `listAdminSales`, regras e Hosting publicados em `seolleda-dev` com `Deploy complete` em 07/09/2026. Homologação funcional pendente.
 
 ## 1G — Reserva transacional de estoque — Publicada em HML
 
