@@ -44,3 +44,4 @@ export {
 //   response.send("Hello from Firebase!");
 // });
 export {manageInventory} from "./sales/manageInventory.js";
+export {manageSettings} from "./sales/manageSettings.js";

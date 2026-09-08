@@ -299,3 +299,7 @@ Usuário enviou saída Deploy complete do Hosting seolleda-dev (HML), site https
 ## Publicação 1C confirmada
 
 Usuário confirmou testes funcionais, lint e build e enviou Deploy complete do Hosting seolleda-dev (HML). Versão 1C homologada e publicada. Sem publicação de Functions ou regras. Commit e tag não verificados nesta confirmação. Próxima fase planejada: 1D — cartão; definir provedor e integração com terminal antes da implementação. Produção ainda não criada.
+
+## Fase atual 1D — Configurações
+
+Usuário adiou cartão e autorizou Loja e Terminais. Implementação local com manageSettings e tela administrativa; validação e publicação pendentes. HML continua seolleda-dev. Comandos a executar pelo usuário. Esta etapa não permite criar lojas nem configurar automaticamente tablets; permite editar lojas existentes e cadastrar/editar terminais.
