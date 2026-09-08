@@ -1,5 +1,5 @@
 // Versão funcional da fase. Atualizar junto com docs/CHANGELOG.md.
-export const APP_VERSION = "1O";
+export const APP_VERSION = "1P";
 const environmentLabel = import.meta.env.VITE_FIREBASE_PROJECT_ID === "seolleda-dev"
   ? "HML"
   : "Ambiente não configurado";

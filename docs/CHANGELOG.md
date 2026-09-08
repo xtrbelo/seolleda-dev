@@ -1,5 +1,15 @@
 # Histórico de versões
 
+## 1P — Confiabilidade de reservas e paginação — Homologada e publicada em HML
+
+- A limpeza agendada busca somente vendas pendentes vencidas, em lotes ordenados, evitando que vendas já processadas bloqueiem a fila.
+- Reservas inconsistentes saem da fila automática com indicação de revisão de estoque, evitando repetição indefinida do mesmo registro.
+- A paginação administrativa usa data e identificador da venda como cursor estável, sem pular vendas criadas no mesmo instante.
+- Testes focados cobrem a limpeza em lotes, invocações concorrentes e o cursor composto.
+- Implementação local concluída: builds e lints sem erros; 29 testes de negócio e 4 testes de regras aprovados. Três testes focados foram repetidos após o ajuste final.
+- Publicada em `seolleda-dev` (HML) em 08/09/2026: `releaseExpiredReservations`, `listAdminSales`, índices do Firestore e Hosting concluíram com `Deploy complete`.
+- Após a publicação, o usuário confirmou a versão 1P visível e o teste funcional sem erros.
+
 ## 1O — Pagamento por cartão online — Homologada e publicada em HML
 
 - Integração com o Checkout Transparente do Mercado Pago para tokenizar o cartão no navegador.

@@ -9,7 +9,7 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "test:rules": "firebase emulators:exec --only firestore \"node --test tests/firestore.rules.test.cjs\"",
-    "test:business": "npm.cmd --prefix functions run test:pix && node --test functions/tests/inventory.test.cjs",
+    "test:business": "npm.cmd --prefix functions run build && node --test functions/tests/*.test.cjs",
     "test:all": "npm.cmd run test:rules && npm.cmd run test:business"
   },
   "dependencies": {

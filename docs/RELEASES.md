@@ -25,6 +25,7 @@ A fonte única da versão exibida é src/lib/appVersion.ts. A versão técnica 0
 | 1M | Relatórios processados no backend | Publicada em HML; homologação pendente |
 | 1N | Testes automatizados de regras e fluxo | Homologada e publicada em HML; Hosting e suíte automatizada confirmados |
 | 1O | Pagamento por cartão online | Homologada e publicada em HML; Functions, webhook e Hosting confirmados |
+| 1P | Confiabilidade de reservas e paginação | Homologada e publicada em HML; Functions, índice do Firestore e Hosting confirmados |
 
 Não tratar fases planejadas como implementadas. A identificação 1A foi adotada e publicada em 07/09/2026. Histórico em docs/CHANGELOG.md.
 
