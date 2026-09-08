@@ -8,6 +8,12 @@ function localDay() {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 }
 
+const paymentReviewReason = (reason?: string) => ({
+  MISSING_APPROVAL_DATE: "O provedor não informou a data de aprovação.",
+  APPROVED_AFTER_EXPIRATION: "O pagamento foi aprovado após o prazo da venda.",
+  SALE_NOT_PENDING: "A venda já não estava pendente quando o pagamento foi aprovado.",
+} as Record<string, string>)[reason ?? ""] ?? "Conferência manual necessária no provedor.";
+
 export default function SalesPage() {
   const [from, setFrom] = useState(localDay);
   const [until, setUntil] = useState(localDay);
@@ -69,6 +75,11 @@ export default function SalesPage() {
   const needle = search.trim().toLocaleLowerCase("pt-BR");
   const visible = sales.filter((sale) => (!status || (status === "Estoque" ? sale.stockReconciliationRequired : saleSituation(sale, now) === status)) &&
     (!needle || [sale.id, sale.terminalId, sale.mercadoPagoPaymentId].some((value) => value?.toLocaleLowerCase("pt-BR").includes(needle))));
+  const paymentReviews = sales.filter((sale) => saleSituation(sale, now) === "Revisão de pagamento").length;
+  const stockReviews = sales.filter((sale) => sale.stockReconciliationRequired).length;
+  const pendingPayments = sales.filter((sale) => saleSituation(sale, now) === "Pendente").length;
+  const paidSales = sales.filter((sale) => saleSituation(sale, now) === "Paga").length;
+  const chooseStatus = (next: string) => { setStatus(next); setSelected(null); };
 
   return <section className="stock-page">
     <div className="page-heading"><div><span className="eyebrow">Operação</span><h1>Vendas</h1><p>Consulte compras e acompanhe pendências.</p></div></div>
@@ -84,6 +95,12 @@ export default function SalesPage() {
         {["Paga", "Pendente", "Prazo encerrado", "Revisão de pagamento", "Cancelada", "Estornada"].map((label) => <option key={label}>{label}</option>)}
         <option value="Estoque">Revisão de estoque</option>
       </select></label>
+    </div>
+    <div className="payment-operations" aria-label="Resumo da operação de pagamentos">
+      <button type="button" className={status === "Pendente" ? "operation-card selected" : "operation-card"} onClick={() => chooseStatus("Pendente")}><strong>{pendingPayments}</strong><span>Pagamentos pendentes</span></button>
+      <button type="button" className={status === "Revisão de pagamento" ? "operation-card selected" : "operation-card"} onClick={() => chooseStatus("Revisão de pagamento")}><strong>{paymentReviews}</strong><span>Revisões de pagamento</span></button>
+      <button type="button" className={status === "Estoque" ? "operation-card selected" : "operation-card"} onClick={() => chooseStatus("Estoque")}><strong>{stockReviews}</strong><span>Revisões de estoque</span></button>
+      <button type="button" className={status === "Paga" ? "operation-card selected" : "operation-card"} onClick={() => chooseStatus("Paga")}><strong>{paidSales}</strong><span>Pagamentos concluídos</span></button>
     </div>
     <p role="status">{visible.length} exibida(s) de {sales.length} carregada(s). Busca e situação filtram as vendas carregadas do período consultado.</p>
     {error && <p className="page-error" role="alert">{error}</p>}
@@ -112,6 +129,7 @@ export default function SalesPage() {
         </dl>
         {saleSituation(selected, now) === "Prazo encerrado" && <p>O prazo local terminou. Isso não confirma cancelamento da cobrança no provedor.</p>}
         {(selected.paymentReconciliationRequired || selected.status === "PAYMENT_REVIEW_REQUIRED") && <p className="page-error">Pagamento exige conferência no provedor. Esta tela não realiza estorno nem aprovação manual.</p>}
+        {(selected.paymentReconciliationRequired || selected.status === "PAYMENT_REVIEW_REQUIRED") && <p><strong>Motivo:</strong> {paymentReviewReason(selected.paymentReviewReason)}</p>}
         {selected.stockReconciliationRequired && <p className="page-error">Estoque exige conferência. Consulte o histórico de movimentações antes de ajustar o saldo.</p>}
         <div className="stock-table-wrap"><table className="stock-table"><thead><tr><th>Produto / SKU</th><th>Qtd.</th><th>Unitário</th><th>Total</th></tr></thead>
           <tbody>{(selected.items ?? []).map((item) => <tr key={item.productId}><td>{item.name}<small className="inactive-label">{item.sku}</small></td><td>{item.quantity}</td><td>{money(item.unitPriceCents)}</td><td>{money(item.totalCents)}</td></tr>)}</tbody></table></div>

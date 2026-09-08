@@ -2481,6 +2481,13 @@ body,
 .sales-filters > * {
   min-width: 0;
 }
+
+.payment-operations { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 18px 0; }
+.operation-card { display: grid; gap: 4px; text-align: left; border: 1px solid var(--line, #d7dce5); border-radius: 10px; background: var(--surface, #fff); padding: 14px; color: inherit; cursor: pointer; }
+.operation-card:hover, .operation-card.selected { border-color: var(--accent, #216eac); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent, #216eac) 18%, transparent); }
+.operation-card strong { font-size: 1.45rem; }
+.operation-card span { font-size: .9rem; }
+@media (max-width: 760px) { .payment-operations { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .metric-card strong,
 .cart-item-info {
   overflow-wrap: anywhere;

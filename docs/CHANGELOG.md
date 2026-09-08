@@ -1,6 +1,13 @@
 # Histórico de versões
 
-## 1H — Proteção de dados de vendas — Em desenvolvimento
+## 1I — Operação de pagamentos em revisão — Homologada e publicada em HML
+
+- A tela de Vendas passa a apresentar uma fila de triagem com totais de pagamentos pendentes, revisões de pagamento e revisões de estoque no período carregado.
+- Atalhos filtram diretamente as revisões de pagamento e estoque; o detalhe identifica o motivo registrado para a revisão.
+- Esta etapa é somente leitura: não aprova pagamentos, não faz estornos e não altera estoque automaticamente.
+- Build frontend aprovado, lint sem erros bloqueantes e Hosting publicado em `seolleda-dev` com `Deploy complete`. Usuário confirmou a homologação funcional da 1I.
+
+## 1H — Proteção de dados de vendas — Homologada e publicada em HML
 
 - A coleção `sales` deixa de ser lida diretamente pelo frontend.
 - Nova Function autenticada `listAdminSales` exige papel de vendas ou relatórios e retorna somente os campos operacionais necessários.
@@ -95,5 +102,5 @@ Validação anterior do estoque: cinco testes simulados de estoque e 17 testes P
 
 ## Próximas versões
 
-- Fase atual: 1E — preferências de exibição dos alertas de estoque, em desenvolvimento.
+- Fase atual: 1I — operação de pagamentos em revisão, em desenvolvimento.
 - Pagamento por cartão continua adiado, conforme decisão do usuário; depende da definição da integração.
