@@ -6,6 +6,18 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function hasRole(role) {
+      return isAuthenticated()
+        && (request.auth.token.admin == true
+          || (request.auth.token.roles is list && request.auth.token.roles.hasAny([role, 'admin'])));
+    }
+
+    function canCatalog() { return hasRole('catalog'); }
+    function canInventory() { return hasRole('inventory'); }
+    function canSales() { return hasRole('sales'); }
+    function canReports() { return hasRole('reports'); }
+    function canSettings() { return hasRole('settings'); }
+
     function validString(value, minimum, maximum) {
       return value is string
         && value.size() >= minimum
@@ -41,21 +53,21 @@ service cloud.firestore {
     }
 
     match /products/{productId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated()
+      allow read: if canCatalog() || canReports() || canInventory() || canSales();
+      allow create: if canCatalog()
         && validProduct(request.resource.data)
         && request.resource.data.createdAt == request.time
         && request.resource.data.updatedAt == request.time;
-      allow update: if isAuthenticated()
+      allow update: if canCatalog()
         && validProduct(request.resource.data)
         && request.resource.data.createdAt == resource.data.createdAt
         && request.resource.data.updatedAt == request.time;
-      allow delete: if isAuthenticated();
+      allow delete: if canCatalog();
     }
 
     match /categories/{categoryId} {
-      allow read: if isAuthenticated();
-      allow create, update: if isAuthenticated()
+      allow read: if canCatalog() || canReports() || canInventory() || canSales();
+      allow create, update: if canCatalog()
         && request.resource.data.keys().hasOnly([
           'name', 'normalizedName', 'description', 'active',
           'createdAt', 'updatedAt'
@@ -69,12 +81,12 @@ service cloud.firestore {
         && request.resource.data.updatedAt == request.time
         && (resource == null
           || request.resource.data.createdAt == resource.data.createdAt);
-      allow delete: if isAuthenticated();
+      allow delete: if canCatalog();
     }
 
     match /stores/{storeId} {
-      allow read: if isAuthenticated();
-      allow create, update: if isAuthenticated()
+      allow read: if canSettings() || canInventory() || canReports();
+      allow create, update: if canSettings()
         && request.resource.data.keys().hasOnly([
           'name', 'active', 'createdAt', 'updatedAt'
         ])
@@ -84,16 +96,16 @@ service cloud.firestore {
         && request.resource.data.updatedAt == request.time
         && (resource == null
           || request.resource.data.createdAt == resource.data.createdAt);
-      allow delete: if isAuthenticated();
+      allow delete: if canSettings();
     }
 
     match /inventory/{inventoryId} {
-      allow read: if isAuthenticated();
+      allow read: if canInventory() || canReports();
       allow create, update, delete: if false;
     }
 
     match /stockMovements/{movementId} {
-      allow read: if isAuthenticated();
+      allow read: if canInventory() || canSales() || canReports();
       allow create, update, delete: if false;
     }
 
@@ -102,7 +114,7 @@ service cloud.firestore {
     }
 
     match /sales/{saleId} {
-      allow read: if isAuthenticated();
+      allow read: if canSales() || canReports();
       allow create, update, delete: if false;
     }
   }

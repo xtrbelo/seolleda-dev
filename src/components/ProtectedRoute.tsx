@@ -10,8 +10,8 @@ function AuthLoading() {
   );
 }
 
-export function ProtectedRoute() {
-  const { user, loading } = useAuth();
+export function ProtectedRoute({ roles = [] }: { roles?: string[] }) {
+  const { user, loading, roles: userRoles } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -20,6 +20,10 @@ export function ProtectedRoute() {
 
   if (!user) {
     return <Navigate to="/admin/login" replace state={{ from: location }} />;
+  }
+
+  if (roles.length && !userRoles.includes("admin") && !roles.some((role) => userRoles.includes(role))) {
+    return <Navigate to="/admin" replace />;
   }
 
   return <Outlet />;

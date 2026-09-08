@@ -2,9 +2,10 @@
 import {onCall, HttpsError} from "firebase-functions/v2/https";
 import {FieldValue} from "firebase-admin/firestore";
 import {firestore} from "../lib/firebaseAdmin.js";
+import {requireRole} from "../auth/roles.js";
 
 export const manageInventory = onCall({region: "southamerica-east1"}, async (request) => {
-  if (!request.auth) throw new HttpsError("unauthenticated", "Faça login para continuar.");
+  requireRole(request, "inventory");
   const {storeId, productId, type, quantity, reason, operationId} = request.data ?? {};
   if (![storeId, productId, operationId].every((v) => typeof v === "string" && /^[A-Za-z0-9_-]{1,128}$/.test(v))) {
     throw new HttpsError("invalid-argument", "Identificador inválido.");
@@ -18,7 +19,7 @@ export const manageInventory = onCall({region: "southamerica-east1"}, async (req
   const inventoryRef = firestore.collection("inventory").doc(`${storeId}_${productId}`);
   const operationRef = firestore.collection("inventoryOperations").doc(operationId);
   const movementRef = firestore.collection("stockMovements").doc(operationId);
-  const payload = {storeId, productId, type, quantity, reason: type === "MINIMUM" ? "" : reason.trim(), userId: request.auth.uid};
+  const payload = {storeId, productId, type, quantity, reason: type === "MINIMUM" ? "" : reason.trim(), userId: request.auth!.uid};
   return firestore.runTransaction(async (tx) => {
     const [operation, store, product, inventory] = await tx.getAll(
       operationRef, firestore.collection("stores").doc(storeId),

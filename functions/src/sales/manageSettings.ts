@@ -2,6 +2,7 @@
 import {onCall, HttpsError} from "firebase-functions/v2/https";
 import {FieldValue} from "firebase-admin/firestore";
 import {firestore} from "../lib/firebaseAdmin.js";
+import {requireRole} from "../auth/roles.js";
 
 /** Validate bounded text.
  * @param {unknown} value Input.
@@ -23,7 +24,7 @@ function identifier(value: unknown): string {
   return id;
 }
 export const manageSettings = onCall({region: "southamerica-east1"}, async (request) => {
-  if (!request.auth) throw new HttpsError("unauthenticated", "Faça login para continuar.");
+  requireRole(request, "settings");
   const input = request.data ?? {};
   if (input.action === "list") {
     const [stores, terminals] = await Promise.all([
@@ -46,7 +47,7 @@ export const manageSettings = onCall({region: "southamerica-east1"}, async (requ
   const id = input.action === "terminal" && input.create === true ?
     firestore.collection("terminals").doc().id : identifier(input.id);
   const name = text(input.name, 120, 2);
-  const actor = request.auth.uid;
+  const actor = request.auth!.uid;
   const auditRef = firestore.collection("settingsAudit").doc();
   if (input.action === "store") {
     const address = text(input.address, 300);

@@ -12,8 +12,15 @@ function fixture() {
     return result;
   }};
   const exports={};
-  vm.runInNewContext(fs.readFileSync(require.resolve("../lib/sales/manageInventory.js"),"utf8"),{exports,require: name => name.includes("firebaseAdmin") ? {firestore} : name === "firebase-functions/v2/https" ? {onCall:(_,fn)=>fn,HttpsError} : {FieldValue:{serverTimestamp:()=>0}}});
-  const call = (data={}, auth={uid:"admin",token:{email:"admin@example.com"}})=>exports.manageInventory({auth,data:{storeId:"s",productId:"p",operationId:"op",type:"EXIT",quantity:2,reason:"Teste",...data}});
+  const roles = {requireRole: (request, role) => {
+    if (!request.auth) throw new HttpsError("unauthenticated", "Faça login para continuar.");
+    const claims = request.auth.token || {};
+    if (claims.admin !== true && !(Array.isArray(claims.roles) && (claims.roles.includes(role) || claims.roles.includes("admin")))) {
+      throw new HttpsError("permission-denied", "Você não tem permissão para esta operação.");
+    }
+  }};
+  vm.runInNewContext(fs.readFileSync(require.resolve("../lib/sales/manageInventory.js"),"utf8"),{exports,require: name => name.includes("firebaseAdmin") ? {firestore} : name.includes("/auth/roles.js") ? roles : name === "firebase-functions/v2/https" ? {onCall:(_,fn)=>fn,HttpsError} : {FieldValue:{serverTimestamp:()=>0}}});
+  const call = (data={}, auth={uid:"admin",token:{email:"admin@example.com",roles:["admin"]}})=>exports.manageInventory({auth,data:{storeId:"s",productId:"p",operationId:"op",type:"EXIT",quantity:2,reason:"Teste",...data}});
   return {docs,call};
 }
 test("requires authentication",async()=>{const f=fixture();await assert.rejects(f.call({},null),{code:"unauthenticated"});assert.equal(f.docs.get("inventory/s_p").quantity,5);});

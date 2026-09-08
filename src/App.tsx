@@ -31,13 +31,13 @@ function App() {
           </Route>
           <Route element={<ProtectedRoute />}>
             <Route path="/admin" element={<AdminLayout />}>
-              <Route index element={<AdminDashboardPage />} />
-              <Route path="produtos" element={<ProductsPage />} />
-              <Route path="categorias" element={<CategoriesPage />} />
-              <Route path="estoque" element={<StockPage />} />
-              <Route path="vendas" element={<SalesPage />} />
-              <Route path="relatorios" element={<ReportsPage />} />
-              <Route path="configuracoes" element={<SettingsPage />} />
+              <Route element={<ProtectedRoute roles={["reports", "inventory"]} />}><Route index element={<AdminDashboardPage />} /></Route>
+              <Route path="produtos" element={<ProtectedRoute roles={["catalog"]} />}><Route index element={<ProductsPage />} /></Route>
+              <Route path="categorias" element={<ProtectedRoute roles={["catalog"]} />}><Route index element={<CategoriesPage />} /></Route>
+              <Route path="estoque" element={<ProtectedRoute roles={["inventory"]} />}><Route index element={<StockPage />} /></Route>
+              <Route path="vendas" element={<ProtectedRoute roles={["sales"]} />}><Route index element={<SalesPage />} /></Route>
+              <Route path="relatorios" element={<ProtectedRoute roles={["reports"]} />}><Route index element={<ReportsPage />} /></Route>
+              <Route path="configuracoes" element={<ProtectedRoute roles={["settings"]} />}><Route index element={<SettingsPage />} /></Route>
             </Route>
           </Route>
           <Route path="*" element={<Navigate to="/checkout" replace />} />

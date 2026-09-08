@@ -1,12 +1,15 @@
 import { NavLink } from "react-router-dom";
 import { adminNavigation } from "../lib/routes";
 import BrandLogo from "./BrandLogo";
+import { useAuth } from "../contexts/AuthContext";
 
 type SidebarProps = {
   onLogout: () => Promise<void>;
 };
 
 function Sidebar({ onLogout }: SidebarProps) {
+  const { roles } = useAuth();
+  const canSee = (item: (typeof adminNavigation)[number]) => !item.roles?.length || roles.includes("admin") || item.roles.some((role) => roles.includes(role));
   return (
     <aside className="sidebar">
       <div className="brand">
@@ -15,7 +18,7 @@ function Sidebar({ onLogout }: SidebarProps) {
 
       <nav aria-label="Navegação administrativa">
         <p className="nav-label">Administração</p>
-        {adminNavigation.map((item) => (
+        {adminNavigation.filter(canSee).map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
