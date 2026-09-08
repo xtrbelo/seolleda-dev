@@ -1,3 +1,4 @@
+/* eslint-disable max-len */
 import * as crypto from "crypto";
 import {FieldValue, Timestamp} from "firebase-admin/firestore";
 import {defineSecret} from "firebase-functions/params";
@@ -238,15 +239,18 @@ export const mercadoPagoWebhook = onRequest(
 
           const currentQuantity =
             invSnap.exists ? Number(invSnap.get("quantity")) || 0 : 0;
+          const reservedQuantity = invSnap.exists ? Number(invSnap.get("reservedQuantity") ?? 0) || 0 : 0;
           const newQuantity = currentQuantity - item.quantity;
+          const reservationMissing = reservedQuantity < item.quantity;
 
-          if (newQuantity < 0) {
+          if (newQuantity < 0 || reservationMissing) {
             stockReconciliationRequired = true;
           }
 
           if (invSnap.exists) {
             transaction.update(invRef, {
               quantity: newQuantity,
+              reservedQuantity: Math.max(0, reservedQuantity - item.quantity),
               updatedAt: FieldValue.serverTimestamp(),
             });
           } else {
@@ -254,6 +258,7 @@ export const mercadoPagoWebhook = onRequest(
               storeId,
               productId: item.productId,
               quantity: newQuantity,
+              reservedQuantity: 0,
               minimumQuantity: 0,
               createdAt: FieldValue.serverTimestamp(),
               updatedAt: FieldValue.serverTimestamp(),
@@ -285,6 +290,7 @@ export const mercadoPagoWebhook = onRequest(
           mercadoPagoPaymentId: paymentId,
           status: "PAID",
           paymentStatus: "APPROVED",
+          reservationStatus: "CONSUMED",
           paidAt: Timestamp.fromMillis(approvedAtMs),
           mercadoPagoPaymentStatus: payment.status,
           mercadoPagoPaymentStatusDetail: payment.statusDetail,

@@ -1,3 +1,4 @@
+/* eslint-disable max-len */
 /**
  * Import function triggers from their respective submodules:
  *
@@ -45,3 +46,4 @@ export {
 // });
 export {manageInventory} from "./sales/manageInventory.js";
 export {manageSettings} from "./sales/manageSettings.js";
+export {releaseExpiredReservations} from "./sales/releaseExpiredReservations.js";

@@ -64,14 +64,18 @@ export const getCheckoutProduct = onCall(
       .where("productId", "==", productSnapshot.id)
       .limit(1)
       .get();
-    const quantity = inventorySnapshot.docs[0]?.data().quantity;
+    const inventoryData = inventorySnapshot.docs[0]?.data();
+    const quantity = inventoryData?.quantity;
+    const reservedQuantity = inventoryData?.reservedQuantity;
+    const availableQuantity = Number.isInteger(quantity) &&
+      Number.isInteger(reservedQuantity) ? quantity - reservedQuantity : quantity;
     return {
       id: productSnapshot.id,
       name: product.name,
       sku: product.sku,
       barcode: product.barcode,
       salePrice: product.salePrice,
-      availableStock: Number.isInteger(quantity) && quantity > 0 ? quantity : 0,
+      availableStock: Number.isInteger(availableQuantity) && availableQuantity > 0 ? availableQuantity : 0,
     };
   },
 );

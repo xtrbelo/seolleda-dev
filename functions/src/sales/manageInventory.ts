@@ -36,15 +36,18 @@ export const manageInventory = onCall({region: "southamerica-east1"}, async (req
     }
     const current = inventory.exists ? inventory.data()?.quantity : 0;
     const minimum = inventory.exists ? inventory.data()?.minimumQuantity : 0;
-    if (!Number.isSafeInteger(current) || !Number.isSafeInteger(minimum) || minimum < 0) {
+    const reserved = inventory.exists ? inventory.data()?.reservedQuantity ?? 0 : 0;
+    if (!Number.isSafeInteger(current) || !Number.isSafeInteger(minimum) || minimum < 0 || !Number.isSafeInteger(reserved) || reserved < 0 || (current >= 0 && reserved > current)) {
       throw new HttpsError("failed-precondition", "Estoque inválido. Solicite revisão.");
     }
     const next = type === "ENTRY" ? current + quantity : type === "EXIT" ? current - quantity : type === "ADJUSTMENT" ? quantity : current;
+    if (type === "EXIT" && current - reserved < quantity) throw new HttpsError("failed-precondition", "INSUFFICIENT_STOCK");
+    if (type === "ADJUSTMENT" && next < reserved) throw new HttpsError("failed-precondition", "RESERVED_STOCK");
     if (type !== "MINIMUM" && next < 0) throw new HttpsError("failed-precondition", "INSUFFICIENT_STOCK");
     if (!Number.isSafeInteger(next)) throw new HttpsError("invalid-argument", "INVALID_QUANTITY");
     if (type === "ADJUSTMENT" && next === current) throw new HttpsError("failed-precondition", "NO_STOCK_CHANGE");
     const timestamp = FieldValue.serverTimestamp();
-    tx.set(inventoryRef, {storeId, productId, quantity: next, minimumQuantity: type === "MINIMUM" ? quantity : minimum, updatedAt: timestamp, ...(!inventory.exists ? {createdAt: timestamp} : {})}, {merge: true});
+    tx.set(inventoryRef, {storeId, productId, quantity: next, reservedQuantity: reserved, minimumQuantity: type === "MINIMUM" ? quantity : minimum, updatedAt: timestamp, ...(!inventory.exists ? {createdAt: timestamp} : {})}, {merge: true});
     if (type !== "MINIMUM") {
       const item = product.data()!;
       tx.set(movementRef, {storeId, productId, productName: item.name, productSku: item.sku, productBarcode: item.barcode, type, quantity: type === "ADJUSTMENT" ? Math.abs(next - current) : quantity, previousQuantity: current, newQuantity: next, reason: payload.reason, userId: request.auth!.uid, userEmail: request.auth!.token.email ?? "", createdAt: timestamp});
