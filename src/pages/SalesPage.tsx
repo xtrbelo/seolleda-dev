@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { listAdminSales, managePayment, saleSituation, type AdminSale, type SalesCursor, type PaymentAction } from "../services/adminSalesService";
 import { useAuth } from "../contexts/AuthContext";
+import SaleStockResolution from "../components/SaleStockResolution";
 
 const money = (cents: number) => (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const date = (value: AdminSale["createdAt"]) => value?.toDate().toLocaleString("pt-BR") ?? "—";
@@ -158,6 +159,12 @@ export default function SalesPage() {
         <div className="stock-table-wrap"><table className="stock-table"><thead><tr><th>Produto / SKU</th><th>Qtd.</th><th>Unitário</th><th>Total</th></tr></thead>
           <tbody>{(selected.items ?? []).map((item) => <tr key={item.productId}><td>{item.name}<small className="inactive-label">{item.sku}</small></td><td>{item.quantity}</td><td>{money(item.unitPriceCents)}</td><td>{money(item.totalCents)}</td></tr>)}</tbody></table></div>
         <p><strong>Total: {money(selected.totalCents)}</strong></p>
+        {roles.includes("admin") && <SaleStockResolution key={selected.id} sale={selected} busy={operating} onBusy={setOperating} onResolved={(resolution) => {
+          const updated = {...selected, stockResolution: resolution, stockReconciliationRequired: false,
+            reservationStatus: resolution.action === "RETURN_ALL" ? "RETURNED" : selected.reservationStatus};
+          setSelected(updated);
+          setSales((previous) => previous.map((sale) => sale.id === updated.id ? updated : sale));
+        }} />}
         {roles.includes("admin") && selected.mercadoPagoPaymentId && <form onSubmit={operate}>
           <h3>Operações de pagamento</h3>
           <p>Última situação no provedor: {providerStatus(selected.mercadoPagoPaymentStatus)}.</p>

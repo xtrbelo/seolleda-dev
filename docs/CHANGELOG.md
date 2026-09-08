@@ -1,5 +1,17 @@
 # Histórico de versões
 
+## 1R — Devoluções e resolução de pendências de estoque — Homologada e publicada em HML
+
+- Conferência administrativa de vendas estornadas ou contestadas com reserva já consumida: devolução integral com reposição ou encerramento sem reposição, mediante justificativa e confirmação física.
+- Backend verifica os itens e a baixa original e grava estoque, movimentações e resolução na mesma transação. Uma resolução por venda impede reposição duplicada, inclusive com solicitações simultâneas.
+- Responsável, data, motivo e decisão ficam disponíveis no detalhe da venda; reposições também aparecem no histórico de estoque.
+- Devoluções parciais e correção de reservas inconsistentes ficam fora desta fase. Pendências anteriores de reserva não são encerradas por este fluxo.
+- Implementação local concluída; adicionados 11 testes de devoluções e um teste de regras para bloquear gravação direta do histórico. Builds, testes, Git e deploy são executados pelo usuário.
+- Validação enviada pelo usuário em 08/09/2026: builds frontend/backend aprovados, lints sem erros, 48 testes de negócio e cinco testes de regras aprovados. Permanecem sete avisos conhecidos no lint frontend e o aviso de tamanho do bundle. Diff-check apresentou somente avisos de conversão LF/CRLF. Mensagens de permissão negada no emulador correspondem aos bloqueios esperados.
+- Diff enviado pelo usuário e três arquivos novos revisados (`resolveSaleStock.ts`, `returns.test.cjs` e `SaleStockResolution.tsx`). Seleção da fase contém 12 arquivos; cache gerado do Hosting fica fora do commit.
+- Usuário autorizou e executou a publicação em `seolleda-dev` (HML) em 08/09/2026: `resolveSaleStock` criada e `listAdminSales` atualizada em `southamerica-east1`; Hosting publicado. Saída enviada confirmou sucesso nos três alvos e `Deploy complete`.
+- Após a publicação, o usuário confirmou os testes funcionais e a homologação da 1R. Commit e tag de fechamento ainda pendentes.
+
 ## 1Q — Operações de pagamentos em revisão, cancelamento e reembolso — Homologada e publicada em HML
 
 - Administradores podem consultar o estado atual no Mercado Pago, cancelar cobranças pendentes e solicitar reembolso integral com motivo obrigatório.
@@ -177,5 +189,5 @@ Validação anterior do estoque: cinco testes simulados de estoque e 17 testes P
 
 ## Próximas versões
 
-- Fase atual: 1Q — operações de pagamentos em revisão, cancelamento e reembolso, homologada e publicada em HML.
-- Fase anterior: 1P homologada e publicada em HML.
+- Fase atual: 1R — devoluções e resolução de pendências de estoque, homologada e publicada em HML.
+- Fase anterior: 1Q homologada e publicada em HML; commit `9d22d17`, tag remota `release-1q` confirmada.

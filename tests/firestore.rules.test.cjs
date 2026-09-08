@@ -62,3 +62,13 @@ test("admin remains global but direct sales writes stay blocked", async () => {
   await assertSucceeds(getDoc(doc(admin, "inventory/store-b_product")));
   await assertFails(setDoc(doc(admin, "sales/sale-a"), {status: "PAID"}));
 });
+
+test("stock resolutions and return movements cannot be forged or deleted from clients", async () => {
+  const admin = db("admin-user", {admin: true});
+  await seed("saleStockResolutions/sale-a", {action: "RETURN_ALL", storeId: "store-a"});
+  await assertFails(getDoc(doc(admin, "saleStockResolutions/sale-a")));
+  await assertFails(setDoc(doc(admin, "saleStockResolutions/sale-b"), {action: "RETURN_ALL"}));
+  await assertFails(setDoc(doc(admin, "saleStockResolutions/sale-a"), {action: "NO_RETURN"}));
+  await assertFails(deleteDoc(doc(admin, "saleStockResolutions/sale-a")));
+  await assertFails(setDoc(doc(admin, "stockMovements/return_sale-a_product"), {storeId: "store-a", type: "REFUND", quantity: 2}));
+});

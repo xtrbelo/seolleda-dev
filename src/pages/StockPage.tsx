@@ -20,7 +20,7 @@ const movementLabels: Record<StockMovementType, string> = {
   EXIT: "Saída",
   ADJUSTMENT: "Ajuste",
   SALE: "Venda",
-  REFUND: "Estorno",
+  REFUND: "Devolução",
 };
 
 function formatDate(date: Product["updatedAt"]) {

@@ -3,6 +3,8 @@ import {getFunctions, httpsCallable} from "firebase/functions";
 import {app} from "../lib/firebase";
 
 export type AdminSale = {
+  reservationStatus?: string;
+  stockResolution?: StockResolution;
   id: string; status: string; paymentStatus?: string; paymentMethod?: string;
   mercadoPagoPaymentId?: string; storeId: string; terminalId: string; totalCents: number;
   createdAt?: Timestamp; paidAt?: Timestamp; expiresAt?: Timestamp;
@@ -14,6 +16,16 @@ export type AdminSale = {
   paymentOperationReason?: string;
   items: {productId: string; name: string; sku: string; quantity: number; unitPriceCents: number; totalCents: number}[];
 };
+export type StockResolution = {
+  action: "RETURN_ALL" | "NO_RETURN";
+  reason: string;
+  userId: string;
+  resolvedAtMs: number;
+};
+export async function resolveSaleStock(saleId: string, action: StockResolution["action"], reason: string, physicallyChecked: boolean) {
+  const operation = httpsCallable<{saleId: string; action: string; reason: string; physicallyChecked: boolean}, {resolution: StockResolution}>(getFunctions(app, "southamerica-east1"), "resolveSaleStock");
+  return (await operation({saleId, action, reason, physicallyChecked})).data.resolution;
+}
 export type SalesCursor = {createdAtMs: number; id: string};
 type RemoteSale = Omit<AdminSale, "createdAt" | "paidAt" | "expiresAt"> & {createdAtMs: number; paidAtMs?: number; expiresAtMs?: number};
 type SalesResponse = {sales: RemoteSale[]; hasMore: boolean; cursor?: SalesCursor};
