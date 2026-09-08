@@ -1,16 +1,16 @@
 # Histórico de versões
 
-## 1F — Segurança administrativa por papéis — Em desenvolvimento
+## 1F — Segurança administrativa por papéis — Publicada em HML
 
 - Modelo de papéis no token do Firebase: `admin`, `catalog`, `inventory`, `sales`, `reports` e `settings`.
 - Rotas e navegação administrativas passam a filtrar Produtos, Categorias, Estoque, Vendas, Relatórios e Configurações conforme o papel.
 - `manageInventory` exige `inventory` ou `admin`; `manageSettings` exige `settings` ou `admin`.
 - Regras do Firestore deixam de usar apenas autenticação e passam a exigir o papel correspondente para leitura e escrita.
-- Bootstrap do primeiro administrador e atualização dos tokens ainda são necessários antes de publicar em HML. Nenhuma Function, regra ou Hosting foi publicado nesta fase.
 - Conta `jpbelooo@gmail.com` cadastrada no projeto `seolleda-dev` com claim `roles: ["admin"]`; é necessário sair e entrar novamente para renovar o token.
-- Frontend/backend compilados, lint do backend aprovado e suíte existente com 22 testes aprovados. Testes de regras, migração dos usuários restantes e homologação permanecem pendentes. Nenhuma Function, regra ou Hosting foi publicado nesta fase.
+- Frontend/backend compilados, lint do backend aprovado e suíte existente com 22 testes aprovados. Regras compiladas e liberadas; `manageInventory` e `manageSettings` atualizadas em `southamerica-east1`; Hosting publicado em `seolleda-dev` com `Deploy complete` em 07/09/2026.
+- Commit publicado: `bb2f0a2`. Homologação pós-deploy e migração de outros usuários permanecem pendentes. Tag `release-1f` ainda não criada.
 
-## 1E — Preferências de alertas de estoque — Em desenvolvimento
+## 1E — Preferências de alertas de estoque — Publicada em HML
 
 - Configurações para exibir/ocultar alertas de estoque baixo, zerado e negativo; todos habilitados por padrão e botão para restaurá-los.
 - Preferências locais por navegador e projeto Firebase, compartilhadas pelos usuários desse navegador; atualização entre abas. Não sincronizadas entre dispositivos.
