@@ -2,7 +2,7 @@
 import {Timestamp} from "firebase-admin/firestore";
 import {HttpsError, onCall} from "firebase-functions/v2/https";
 import {firestore} from "../lib/firebaseAdmin.js";
-import {hasRole, requireAnyRole} from "../auth/roles.js";
+import {claimStoreIds, hasRole, requireAnyRole} from "../auth/roles.js";
 
 const MAX_RANGE_MS = 94 * 86400000;
 const PAGE_SIZE = 100;
@@ -26,10 +26,16 @@ export const listAdminSales = onCall({region: "southamerica-east1"}, async (requ
   const cursorMs = cursor && typeof cursor === "object" ? (cursor as Record<string, unknown>).createdAtMs : undefined;
   const cursorId = cursor && typeof cursor === "object" ? (cursor as Record<string, unknown>).id : undefined;
   if (cursor !== undefined && (typeof cursorId !== "string" || !cursorId || typeof cursorMs !== "number")) throw new HttpsError("invalid-argument", "Cursor inválido.");
-  let query = firestore.collection("sales").where("createdAt", ">=", Timestamp.fromMillis(fromMs)).where("createdAt", "<", Timestamp.fromMillis(untilMs)).orderBy("createdAt", "desc").limit(PAGE_SIZE);
+  const admin = hasRole(request, "admin");
+  const storeIds = claimStoreIds(request);
+  let query = firestore.collection("sales").where("createdAt", ">=", Timestamp.fromMillis(fromMs)).where("createdAt", "<", Timestamp.fromMillis(untilMs));
+  if (!admin) {
+    if (storeIds.length === 0 || storeIds.length > 30) throw new HttpsError("permission-denied", "Nenhuma loja foi atribuída a este usuário.");
+    query = query.where("storeId", "in", storeIds);
+  }
+  query = query.orderBy("createdAt", "desc").limit(PAGE_SIZE);
   if (typeof cursorMs === "number" && typeof cursorId === "string") query = query.startAfter(Timestamp.fromMillis(cursorMs));
   const snapshot = await query.get();
-  const admin = hasRole(request, "admin");
   const sales = snapshot.docs.map((doc) => {
     const sale = doc.data();
     return {

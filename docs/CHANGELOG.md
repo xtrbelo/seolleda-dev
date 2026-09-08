@@ -1,5 +1,28 @@
 # Histórico de versões
 
+## 1N — Testes automatizados de regras e fluxo — Em desenvolvimento
+
+- Testes no emulador do Firestore cobrem papéis, bloqueio de escritas diretas, escopo por loja e acesso global do administrador.
+- O comando `test:business` reúne os 17 testes de Pix e 6 testes de estoque, incluindo concorrência, idempotência e transações sem mutação parcial.
+- O comando `test:all` executa regras e fluxo de negócio em sequência.
+- Build frontend aprovado e Hosting publicado em `seolleda-dev` com `Deploy complete`; suíte automatizada local passou com 4 testes de regras e 23 testes de negócio. Usuário confirmou a homologação funcional da 1N.
+
+## 1M — Relatórios processados no backend — Em desenvolvimento
+
+- Indicadores de vendas, produtos por volume e resumo de estoque passam a ser agregados pela Function autenticada `getAdminReport`.
+- O frontend recebe somente o resultado agregado, sem carregar a coleção de vendas para calcular o relatório no navegador.
+- Períodos e limite de 5.000 vendas continuam sendo validados no backend, com escopo de loja aplicado.
+- Frontend e backend compilados, lint aprovado, `getAdminReport` e Hosting publicados em `seolleda-dev` com `Deploy complete`. Homologação funcional pendente.
+
+## 1L — Escopo administrativo por loja — Em desenvolvimento
+
+- Claims `storeIds` passam a representar as lojas atribuídas a cada usuário administrativo.
+- Estoque e consulta de vendas validam o acesso à loja no backend; administradores continuam com acesso global.
+- Regras de leitura de estoque e movimentações também exigem a loja atribuída.
+- Script `set-user-stores.mjs` prepara a atribuição de lojas sem alterar credenciais.
+- A operação atual permanece com uma loja e seus terminais; cadastro de novas lojas e vínculo de usuários ficam adiados para uma etapa futura.
+- Frontend e backend compilados, lint aprovado, Functions de estoque e vendas, regras, índice e Hosting publicados em `seolleda-dev` com `Deploy complete`. Homologação funcional pendente.
+
 ## 1K — Unicidade de SKU e código de barras no backend — Em desenvolvimento
 
 - Cadastro, edição e ativação de produtos passam pela Function autenticada `manageProducts`.

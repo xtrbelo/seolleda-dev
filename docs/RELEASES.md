@@ -21,6 +21,9 @@ A fonte única da versão exibida é src/lib/appVersion.ts. A versão técnica 0
 | 1I | Operação de pagamentos em revisão | Homologada e publicada em HML; Hosting confirmado |
 | 1J | Auditoria operacional | Homologada e publicada em HML; Function e Hosting confirmados |
 | 1K | Unicidade de SKU e código de barras no backend | Homologada e publicada em HML; Function, regras e Hosting confirmados |
+| 1L | Escopo administrativo por loja | Publicada em HML; preparação para expansão futura; operação atual mantém uma loja |
+| 1M | Relatórios processados no backend | Publicada em HML; homologação pendente |
+| 1N | Testes automatizados de regras e fluxo | Homologada e publicada em HML; Hosting e suíte automatizada confirmados |
 | A definir | Pagamento por cartão | Adiada pelo usuário para depois das demais etapas |
 
 Não tratar fases planejadas como implementadas. A identificação 1A foi adotada e publicada em 07/09/2026. Histórico em docs/CHANGELOG.md.

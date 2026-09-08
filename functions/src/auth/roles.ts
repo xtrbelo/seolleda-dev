@@ -45,3 +45,31 @@ export function requireAnyRole(request: {auth?: {token?: Record<string, unknown>
   if (!request.auth) throw new HttpsError("unauthenticated", "Faça login para continuar.");
   if (!roles.some((role) => hasRole(request, role))) throw new HttpsError("permission-denied", "Você não tem permissão para esta operação.");
 }
+
+/** Return the store identifiers assigned to the authenticated user.
+ * @param {object} request Callable request.
+ * @return {string[]} Assigned store identifiers.
+ */
+export function claimStoreIds(request: {auth?: {token?: Record<string, unknown>}}): string[] {
+  const value = request.auth?.token?.storeIds;
+  return Array.isArray(value) ? value.filter((storeId): storeId is string => typeof storeId === "string" && /^[A-Za-z0-9_-]{1,128}$/.test(storeId)) : [];
+}
+
+/** Check whether the request may operate on a store.
+ * @param {object} request Callable request.
+ * @param {string} storeId Store identifier.
+ * @return {boolean} Whether access is granted.
+ */
+export function hasStoreAccess(request: {auth?: {token?: Record<string, unknown>}}, storeId: string): boolean {
+  return hasRole(request, "admin") || claimStoreIds(request).includes(storeId);
+}
+
+/** Reject a request that lacks access to a store.
+ * @param {object} request Callable request.
+ * @param {string} storeId Store identifier.
+ * @return {void}
+ */
+export function requireStoreAccess(request: {auth?: {token?: Record<string, unknown>}}, storeId: string): void {
+  if (!request.auth) throw new HttpsError("unauthenticated", "Faça login para continuar.");
+  if (!hasStoreAccess(request, storeId)) throw new HttpsError("permission-denied", "Você não tem acesso a esta loja.");
+}

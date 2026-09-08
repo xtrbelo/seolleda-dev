@@ -1,11 +1,9 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
-import { dayKey, loadReport, loadStockOverview } from "../services/reportService";
+import { dayKey, loadReport, type Report, type Stock } from "../services/reportService";
 import { useStockAlertPreferences } from "../lib/stockAlertPreferences";
 
 const money = (cents: number) => (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-type Report = Awaited<ReturnType<typeof loadReport>>;
-type Stock = Awaited<ReturnType<typeof loadStockOverview>>;
 function Metrics({ values }: { values: [string, string | number][] }) {
   return <div className="metric-grid">{values.map(([label, value]) => <div className="metric-card" key={label}><span>{label}</span><strong>{value}</strong></div>)}</div>;
 }
@@ -21,8 +19,8 @@ export default function ReportsPage({ dashboard = false }: { dashboard?: boolean
     let active = true;
     async function fetchData() {
       try {
-        const [report, stock] = await Promise.all([loadReport(request.from, request.until), dashboard ? loadStockOverview().catch(() => null) : Promise.resolve(null)]);
-        if (active) setResult({ report, stock, updated: new Date() });
+        const response = await loadReport(request.from, request.until, dashboard);
+        if (active) setResult({ report: response.report, stock: response.stock ?? null, updated: new Date() });
       } catch (failure) {
         if (active) setError(failure instanceof Error && !("code" in failure) ? failure.message : "Não foi possível carregar os indicadores. Tente novamente.");
       } finally { if (active) setLoading(false); }

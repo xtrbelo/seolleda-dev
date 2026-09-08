@@ -2,7 +2,7 @@
 import {onCall, HttpsError} from "firebase-functions/v2/https";
 import {FieldValue} from "firebase-admin/firestore";
 import {firestore} from "../lib/firebaseAdmin.js";
-import {requireRole} from "../auth/roles.js";
+import {requireRole, requireStoreAccess} from "../auth/roles.js";
 
 export const manageInventory = onCall({region: "southamerica-east1"}, async (request) => {
   requireRole(request, "inventory");
@@ -10,6 +10,7 @@ export const manageInventory = onCall({region: "southamerica-east1"}, async (req
   if (![storeId, productId, operationId].every((v) => typeof v === "string" && /^[A-Za-z0-9_-]{1,128}$/.test(v))) {
     throw new HttpsError("invalid-argument", "Identificador inválido.");
   }
+  requireStoreAccess(request, storeId);
   if (!["ENTRY", "EXIT", "ADJUSTMENT", "MINIMUM"].includes(type) || !Number.isSafeInteger(quantity) || quantity < 0 || quantity > 1000000000 || (["ENTRY", "EXIT"].includes(type) && quantity === 0)) {
     throw new HttpsError("invalid-argument", "INVALID_QUANTITY");
   }

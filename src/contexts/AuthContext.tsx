@@ -20,6 +20,7 @@ type AuthContextValue = {
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   roles: string[];
+  storeIds: string[];
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -32,16 +33,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [roles, setRoles] = useState<string[]>([]);
+  const [storeIds, setStoreIds] = useState<string[]>([]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (authenticatedUser) => {
       setUser(authenticatedUser);
-      if (!authenticatedUser) { setRoles([]); setLoading(false); return; }
+      if (!authenticatedUser) { setRoles([]); setStoreIds([]); setLoading(false); return; }
       void getIdTokenResult(authenticatedUser).then((result) => {
         const claimRoles = Array.isArray(result.claims.roles) ? result.claims.roles : [];
         setRoles(result.claims.admin === true ? ["admin"] : claimRoles.filter((role): role is string => typeof role === "string"));
+        setStoreIds(Array.isArray(result.claims.storeIds) ? result.claims.storeIds.filter((storeId): storeId is string => typeof storeId === "string") : []);
         setLoading(false);
-      }).catch(() => { setRoles([]); setLoading(false); });
+      }).catch(() => { setRoles([]); setStoreIds([]); setLoading(false); });
     });
 
     return unsubscribe;
@@ -56,7 +59,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, roles }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, roles, storeIds }}>
       {children}
     </AuthContext.Provider>
   );

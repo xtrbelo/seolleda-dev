@@ -12,6 +12,12 @@ service cloud.firestore {
           || (request.auth.token.roles is list && request.auth.token.roles.hasAny([role, 'admin'])));
     }
 
+    function hasStore(storeId) {
+      return isAuthenticated()
+        && (request.auth.token.admin == true
+          || (request.auth.token.storeIds is list && request.auth.token.storeIds.hasAny([storeId])));
+    }
+
     function canCatalog() { return hasRole('catalog'); }
     function canInventory() { return hasRole('inventory'); }
     function canSales() { return hasRole('sales'); }
@@ -96,12 +102,12 @@ service cloud.firestore {
     }
 
     match /inventory/{inventoryId} {
-      allow read: if canInventory() || canReports();
+      allow read: if (canInventory() || canReports()) && hasStore(resource.data.storeId);
       allow create, update, delete: if false;
     }
 
     match /stockMovements/{movementId} {
-      allow read: if canInventory() || canSales() || canReports();
+      allow read: if (canInventory() || canSales() || canReports()) && hasStore(resource.data.storeId);
       allow create, update, delete: if false;
     }
 

@@ -7,7 +7,10 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:rules": "firebase emulators:exec --only firestore \"node --test tests/firestore.rules.test.cjs\"",
+    "test:business": "npm.cmd --prefix functions run test:pix && node --test functions/tests/inventory.test.cjs",
+    "test:all": "npm.cmd run test:rules && npm.cmd run test:business"
   },
   "dependencies": {
     "firebase": "^12.18.0",
@@ -16,6 +19,7 @@
     "react-router-dom": "^7.18.2"
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.2",
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
