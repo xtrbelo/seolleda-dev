@@ -1,5 +1,16 @@
 # Histórico de versões
 
+## 1D — Configurações — Homologada; publicação final pendente
+
+- Usuário homologou o fluxo inicial. Ajuste posterior: identificação de novos terminais gerada automaticamente no backend; IDs existentes preservados. Identificação automática testada com sucesso pelo usuário.
+
+- Edição das lojas existentes: nome, endereço e contato.
+- Cadastro e edição de terminais: identificação, nome, loja e ativação/desativação.
+- Callable autenticada manageSettings, com validação e registro de alterações em settingsAudit na mesma transação.
+- Mantém o padrão de acesso administrativo existente (usuário autenticado); não introduz papéis. Sem mudanças nas regras.
+- Novos terminais começam inativos. ID existente não pode ser renomeado. Cadastro não configura o dispositivo; checkout ainda usa VITE_TERMINAL_ID.
+- Cartão adiado pelo usuário. Build, lint, testes e homologação pendentes, a executar no VS Code.
+
 ## 1C.1 — Responsividade e logo oficial — Publicada em HML
 
 - Logo oficial também no ícone da aba; título Seolleda e idioma da página pt-BR.

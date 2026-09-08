@@ -14,11 +14,4 @@ export { default as SalesPage } from "./SalesPage";
 
 export { default as ReportsPage } from "./ReportsPage";
 
-export function SettingsPage() {
-  return (
-    <AdminSectionPage
-      title="Configurações"
-      description="Ajuste as preferências do sistema."
-    />
-  );
-}
+export { default as SettingsPage } from "./SettingsPage";
