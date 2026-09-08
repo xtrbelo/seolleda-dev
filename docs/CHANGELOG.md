@@ -9,7 +9,7 @@
 - Usuário confirmou teste funcional e homologação da 1E, além de lint e build do frontend sem erros.
 - Lint do backend reportou 124 erros de quebra de linha em src/index.ts e src/sales/manageSettings.ts. Arquivos normalizados de CRLF para LF, sem alteração de lógica; execução posterior concluída sem erros.
 - Usuário enviou resultado de 22 testes aprovados, sem falhas, e saída do diff-check contendo apenas avisos de conversão LF/CRLF. Adicionados .gitattributes e .editorconfig para preservar LF nos arquivos TypeScript/JavaScript do backend e evitar recorrência do erro de lint.
-- Usuário confirmou a validação final sem erros, incluindo lint/build do backend e 22 testes aprovados. Publicação autorizada: somente Hosting em seolleda-dev (HML). Commit e tag pendentes até o fechamento.
+- Usuário confirmou a validação final sem erros, incluindo lint/build do backend e 22 testes aprovados. Commit c835075 enviado para main. Hosting publicado em seolleda-dev (HML), com saída Deploy complete e URL https://seolleda-dev.web.app. Tag de fechamento ainda não criada.
 
 ## 1D — Configurações — Publicada em HML
 
