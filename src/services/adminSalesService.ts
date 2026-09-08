@@ -1,42 +1,31 @@
-import { collection, getDocs, limit, orderBy, query, startAfter, Timestamp, where, type QueryDocumentSnapshot, type DocumentData } from "firebase/firestore";
-import { db } from "../lib/firebase";
+import {Timestamp} from "firebase/firestore";
+import {getFunctions, httpsCallable} from "firebase/functions";
+import {app} from "../lib/firebase";
 
 export type AdminSale = {
-  id: string;
-  status: string;
-  paymentStatus?: string;
-  paymentMethod?: string;
-  mercadoPagoPaymentId?: string;
-  storeId: string;
-  terminalId: string;
-  totalCents: number;
-  createdAt?: Timestamp;
-  paidAt?: Timestamp;
-  expiresAt?: Timestamp;
-  paymentReconciliationRequired?: boolean;
-  stockReconciliationRequired?: boolean;
+  id: string; status: string; paymentStatus?: string; paymentMethod?: string;
+  mercadoPagoPaymentId?: string; storeId: string; terminalId: string; totalCents: number;
+  createdAt?: Timestamp; paidAt?: Timestamp; expiresAt?: Timestamp;
+  paymentReconciliationRequired?: boolean; stockReconciliationRequired?: boolean;
   paymentReviewReason?: string;
-  items: { productId: string; name: string; sku: string; quantity: number; unitPriceCents: number; totalCents: number }[];
+  items: {productId: string; name: string; sku: string; quantity: number; unitPriceCents: number; totalCents: number}[];
 };
-export type SalesCursor = QueryDocumentSnapshot<DocumentData>;
+export type SalesCursor = {createdAtMs: number; id: string};
+type RemoteSale = Omit<AdminSale, "createdAt" | "paidAt" | "expiresAt"> & {createdAtMs: number; paidAtMs?: number; expiresAtMs?: number};
+type SalesResponse = {sales: RemoteSale[]; hasMore: boolean; cursor?: SalesCursor};
+const callable = httpsCallable<{fromMs: number; untilMs: number; cursor?: SalesCursor}, SalesResponse>(getFunctions(app, "southamerica-east1"), "listAdminSales");
 
 export async function listAdminSales(from: Date, until: Date, cursor?: SalesCursor) {
-  const snapshot = await getDocs(query(collection(db, "sales"),
-    where("createdAt", ">=", Timestamp.fromDate(from)),
-    where("createdAt", "<", Timestamp.fromDate(until)),
-    orderBy("createdAt", "desc"), ...(cursor ? [startAfter(cursor)] : []), limit(100)));
+  const result = await callable({fromMs: from.getTime(), untilMs: until.getTime(), ...(cursor ? {cursor} : {})});
   return {
-    sales: snapshot.docs.map((doc) => ({ ...doc.data(), id: doc.id }) as AdminSale),
-    cursor: snapshot.docs.at(-1),
-    hasMore: snapshot.size === 100,
+    sales: result.data.sales.map((sale) => ({...sale, createdAt: sale.createdAtMs ? Timestamp.fromMillis(sale.createdAtMs) : undefined, paidAt: sale.paidAtMs ? Timestamp.fromMillis(sale.paidAtMs) : undefined, expiresAt: sale.expiresAtMs ? Timestamp.fromMillis(sale.expiresAtMs) : undefined})),
+    cursor: result.data.cursor, hasMore: result.data.hasMore,
   };
 }
 
 export function saleSituation(sale: AdminSale, now: number): string {
   if (sale.status === "PAYMENT_REVIEW_REQUIRED" || sale.paymentReconciliationRequired) return "Revisão de pagamento";
   if (sale.status === "PAID") return "Paga";
-  if (sale.status === "PENDING_PAYMENT") {
-    return sale.expiresAt && sale.expiresAt.toMillis() <= now ? "Prazo encerrado" : "Pendente";
-  }
-  return ({ CANCELLED: "Cancelada", EXPIRED: "Prazo encerrado", REFUNDED: "Estornada" } as Record<string, string>)[sale.status] ?? sale.status;
+  if (sale.status === "PENDING_PAYMENT") return sale.expiresAt && sale.expiresAt.toMillis() <= now ? "Prazo encerrado" : "Pendente";
+  return ({CANCELLED: "Cancelada", EXPIRED: "Prazo encerrado", REFUNDED: "Estornada"} as Record<string, string>)[sale.status] ?? sale.status;
 }

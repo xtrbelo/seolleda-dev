@@ -114,7 +114,7 @@ service cloud.firestore {
     }
 
     match /sales/{saleId} {
-      allow read: if canSales() || canReports();
+      allow read: if false;
       allow create, update, delete: if false;
     }
   }

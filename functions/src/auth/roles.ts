@@ -35,3 +35,13 @@ export function requireRole(request: {auth?: {token?: Record<string, unknown>}},
   if (!request.auth) throw new HttpsError("unauthenticated", "Faça login para continuar.");
   if (!hasRole(request, role)) throw new HttpsError("permission-denied", "Você não tem permissão para esta operação.");
 }
+
+/** Rejects a request unless it has at least one permitted role.
+ * @param {object} request Callable request.
+ * @param {AdminRole[]} roles Permitted roles.
+ * @return {void}
+ */
+export function requireAnyRole(request: {auth?: {token?: Record<string, unknown>}}, roles: AdminRole[]): void {
+  if (!request.auth) throw new HttpsError("unauthenticated", "Faça login para continuar.");
+  if (!roles.some((role) => hasRole(request, role))) throw new HttpsError("permission-denied", "Você não tem permissão para esta operação.");
+}

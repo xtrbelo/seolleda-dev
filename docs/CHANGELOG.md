@@ -1,5 +1,13 @@
 # Histórico de versões
 
+## 1H — Proteção de dados de vendas — Em desenvolvimento
+
+- A coleção `sales` deixa de ser lida diretamente pelo frontend.
+- Nova Function autenticada `listAdminSales` exige papel de vendas ou relatórios e retorna somente os campos operacionais necessários.
+- CPF e e-mail do cliente nunca são enviados ao painel; o identificador do Mercado Pago só é retornado ao administrador.
+- Paginação, período e filtros continuam sendo aplicados no backend, reduzindo a exposição e a transferência de dados.
+- Regras do Firestore bloqueiam leituras diretas de `sales`; validação e homologação pendentes. Nenhum deploy da 1H realizado.
+
 ## 1G — Reserva transacional de estoque — Publicada em HML
 
 - Venda pendente reserva unidades dentro da mesma transação que cria a venda, considerando `quantity - reservedQuantity` como saldo disponível.

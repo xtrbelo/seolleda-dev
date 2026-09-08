@@ -78,7 +78,7 @@ export default function SalesPage() {
       <button className="primary-action" disabled={loading}>Consultar / atualizar</button>
     </form>
     <div className="sales-filters">
-      <label>Buscar<input type="search" placeholder="Venda, terminal ou pagamento" value={search} onChange={(e) => setSearch(e.target.value)} /></label>
+      <label>Buscar<input type="search" placeholder="Venda ou terminal" value={search} onChange={(e) => setSearch(e.target.value)} /></label>
       <label>Situação<select value={status} onChange={(e) => setStatus(e.target.value)}>
         <option value="">Todas</option>
         {["Paga", "Pendente", "Prazo encerrado", "Revisão de pagamento", "Cancelada", "Estornada"].map((label) => <option key={label}>{label}</option>)}
