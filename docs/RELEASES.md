@@ -17,7 +17,8 @@ A fonte única da versão exibida é src/lib/appVersion.ts. A versão técnica 0
 | 1E | Preferências de exibição dos alertas de estoque | Publicada em HML; deploy do Hosting confirmado |
 | 1F | Segurança administrativa por papéis | Homologada e publicada em HML; regras, Functions e Hosting confirmados |
 | 1G | Reserva transacional de estoque | Homologada e publicada em HML; Functions, Scheduler e Hosting confirmados |
-| 1H | Proteção de dados de vendas | Publicada em HML; homologação funcional pendente |
+| 1H | Proteção de dados de vendas | Homologada e publicada em HML; Function, regras e Hosting confirmados |
+| 1I | Operação de pagamentos em revisão | Próxima fase planejada; ainda não iniciada |
 | A definir | Pagamento por cartão | Adiada pelo usuário; definir integração antes de implementar |
 
 Não tratar fases planejadas como implementadas. A identificação 1A foi adotada e publicada em 07/09/2026. Histórico em docs/CHANGELOG.md.
