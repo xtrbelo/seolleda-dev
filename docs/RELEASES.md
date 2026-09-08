@@ -24,9 +24,28 @@ A fonte única da versão exibida é src/lib/appVersion.ts. A versão técnica 0
 | 1L | Escopo administrativo por loja | Publicada em HML; preparação para expansão futura; operação atual mantém uma loja |
 | 1M | Relatórios processados no backend | Publicada em HML; homologação pendente |
 | 1N | Testes automatizados de regras e fluxo | Homologada e publicada em HML; Hosting e suíte automatizada confirmados |
-| A definir | Pagamento por cartão | Adiada pelo usuário para depois das demais etapas |
+| 1O | Pagamento por cartão online | Homologada e publicada em HML; Functions, webhook e Hosting confirmados |
 
 Não tratar fases planejadas como implementadas. A identificação 1A foi adotada e publicada em 07/09/2026. Histórico em docs/CHANGELOG.md.
+
+## Tags históricas a partir da 1E
+
+Tags anotadas criadas e enviadas ao GitHub em 08/09/2026, após autorização explícita do usuário. Push atômico das oito tags concluído com sucesso.
+
+| Tag | Commit | Observação |
+| --- | --- | --- |
+| release-1e | 14468f7 | Inclui registro da publicação em HML; código da entrega c835075 |
+| release-1f | 4fd26fd | Inclui registro da homologação; código da entrega bb2f0a2 |
+| release-1g | 91eecb6 | Inclui registro da homologação; código da entrega a89a43e |
+| release-1h | c0dd318 | Inclui registro da homologação; código da entrega a44991b |
+| release-1i | 3ff0cce | Triagem operacional de pagamentos |
+| release-1j | 21be469 | Auditoria operacional |
+| release-1k | 3d0b901 | Unicidade de produtos |
+| release-1n | 9fb6e72 | Commit acumulado das fases 1L, 1M e 1N |
+
+Não foram criadas tags separadas para 1L e 1M: o histórico não contém commits com essas versões isoladas. A tag 1N identifica o conjunto acumulado, sem alterar os registros de homologação de cada fase. As tags anteriores foram preservadas.
+
+O usuário autorizou o commit da integração de cartão na `main`, seu envio e a criação/envio da tag anotada `release-1o`. Essa tag identifica o commit de fechamento da 1O, incluindo código e documentação. O cache gerado do Hosting e as credenciais locais não integram o commit.
 
 ## Ciclo de cada versão
 

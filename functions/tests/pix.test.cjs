@@ -68,13 +68,16 @@ function fixture() {
     if (options.method === "POST") {
       const key = options.headers["X-Idempotency-Key"];
       const body = JSON.parse(options.body);
+      const isCard = body.payment_method_id !== "pix";
       if (payments.has(key)) {
         assert.equal(payments.get(key).body, options.body, "retry payload changed");
       } else {
         payments.set(key, {body: options.body, data: {
           id: 12345, external_reference: body.external_reference,
           transaction_amount: body.transaction_amount, currency_id: "BRL",
-          payment_method_id: "pix", status: "pending", status_detail: "pending_waiting_transfer",
+            payment_method_id: isCard ? body.payment_method_id : "pix",
+            payment_type_id: isCard ? "credit_card" : "bank_transfer",
+            status: "pending", status_detail: "pending_waiting_transfer",
           metadata: body.metadata, date_approved: null,
           date_of_expiration: new Date(now + 86400000).toISOString(),
           point_of_interaction: {transaction_data: {
@@ -116,6 +119,7 @@ function fixture() {
     return exports;
   }
   const create = load("createPixPayment.js").createPixPayment;
+  const createCard = load("createCardPayment.js").createCardPayment;
   const handler = load("mercadoPagoWebhook.js").mercadoPagoWebhook;
   const webhook = async (overrides = {}) => {
     const ts = String(Date.now());
@@ -138,6 +142,10 @@ function fixture() {
       httpFailure = {ok: false, status: 401, json: async () => body};
     },
     create: (data = {}) => create({data: {saleId: "sale1", payerEmail: "a@example.com", ...data}}),
+    createCard: (data = {}) => createCard({data: {
+      saleId: "sale1", token: "tokenized-card-token", paymentMethodId: "visa",
+      installments: 1, payerEmail: "a@example.com", ...data,
+    }}),
     sale: () => docs.get("sales/sale1"),
     payment: () => [...payments.values()][0].data,
     approve: () => Object.assign([...payments.values()][0].data, {
@@ -357,6 +365,40 @@ test("transaction failure leaves no partial stock mutation", async () => {
   assert.equal((await f.webhook()).code, 500);
   assert.equal(f.docs.get("inventory/store1_p1").quantity, 8);
   assert.equal(f.movementCount(), 0);
+  assert.equal((await f.webhook()).code, 200);
+  assert.equal(f.movementCount(), 1);
+});
+
+test("card payment uses the server total and tokenized provider payload", async () => {
+  const f = fixture();
+  const result = await f.createCard({totalCents: 1, installments: 3});
+  assert.equal(result.status, "pending");
+  assert.equal(f.sale().paymentMethod, "CARD");
+  assert.equal(f.http.filter((call) => call.method === "POST").length, 1);
+  const body = JSON.parse(f.http[0].body);
+  assert.equal(body.transaction_amount, 12.5);
+  assert.equal(body.installments, 3);
+  assert.equal(body.payment_method_id, "visa");
+  assert.equal(body.token, "tokenized-card-token");
+  assert.equal(body.external_reference, "sale1");
+});
+
+test("card payment rejects missing token before contacting provider", async () => {
+  const f = fixture();
+  await assert.rejects(f.createCard({token: ""}), {code: "invalid-argument"});
+  assert.equal(f.http.length, 0);
+  assert.equal(f.sale().paymentMethod, undefined);
+});
+
+test("approved card payment consumes the reservation exactly once", async () => {
+  const f = fixture();
+  await f.createCard();
+  f.approve();
+  assert.equal((await f.webhook()).code, 200);
+  assert.equal(f.sale().status, "PAID");
+  assert.equal(f.sale().paymentMethod, "CARD");
+  assert.equal(f.docs.get("inventory/store1_p1").quantity, 6);
+  assert.equal(f.movementCount(), 1);
   assert.equal((await f.webhook()).code, 200);
   assert.equal(f.movementCount(), 1);
 });

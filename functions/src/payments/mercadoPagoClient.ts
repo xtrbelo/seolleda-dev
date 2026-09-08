@@ -31,6 +31,7 @@ export type MpPayment = {
   totalCents: number;
   currency: string;
   paymentMethod: string;
+  paymentType: string;
   attemptId: string;
   approvedAtMs: number | null;
   expiresAtMs: number | null;
@@ -78,7 +79,9 @@ function parsePayment(data: unknown): MpPayment {
     totalCents,
     currency: String(payment.currency_id ?? ""),
     paymentMethod: String(payment.payment_method_id ?? ""),
-    attemptId: String(record(payment.metadata).seolleda_pix_attempt ?? ""),
+    paymentType: String(payment.payment_type_id ?? ""),
+    attemptId: String(record(payment.metadata).seolleda_payment_attempt ??
+      record(payment.metadata).seolleda_pix_attempt ?? ""),
     approvedAtMs: dateMs(payment.date_approved),
     expiresAtMs: dateMs(payment.date_of_expiration),
     qrCode: typeof qr.qr_code === "string" ? qr.qr_code : "",
@@ -145,6 +148,55 @@ export async function createMpPixPayment(params: {
   if (payment.externalReference !== params.saleId ||
       payment.totalCents !== params.totalCents ||
       payment.currency !== "BRL" || payment.paymentMethod !== "pix") {
+    throw new Error("MP_PAYMENT_MISMATCH");
+  }
+  return payment;
+}
+
+/**
+ * Creates a tokenized credit-card payment. Raw card data never reaches here.
+ * @param {object} params Provider request data.
+ * @return {Promise<MpPayment>} Created payment.
+ */
+export async function createMpCardPayment(params: {
+  saleId: string;
+  totalCents: number;
+  payerEmail: string;
+  token: string;
+  paymentMethodId: string;
+  issuerId?: number;
+  installments: number;
+  accessToken: string;
+  idempotencyKey: string;
+}): Promise<MpPayment> {
+  const response = await fetch(MP_PAYMENTS_URL, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${params.accessToken}`,
+      "Content-Type": "application/json",
+      "X-Idempotency-Key": params.idempotencyKey,
+    },
+    signal: AbortSignal.timeout(15000),
+    body: JSON.stringify({
+      transaction_amount: params.totalCents / 100,
+      token: params.token,
+      payment_method_id: params.paymentMethodId,
+      ...(params.issuerId === undefined ? {} : {issuer_id: params.issuerId}),
+      installments: params.installments,
+      external_reference: params.saleId,
+      metadata: {seolleda_payment_attempt: params.idempotencyKey},
+      payer: {email: params.payerEmail},
+    }),
+  });
+  if (!response.ok) {
+    await reportHttpError(response);
+    throw new Error(`MP_HTTP_${response.status}`);
+  }
+  const payment = parsePayment(await response.json());
+  if (payment.externalReference !== params.saleId ||
+      payment.totalCents !== params.totalCents ||
+      payment.currency !== "BRL" || payment.paymentMethod === "pix" ||
+      payment.paymentType !== "credit_card") {
     throw new Error("MP_PAYMENT_MISMATCH");
   }
   return payment;

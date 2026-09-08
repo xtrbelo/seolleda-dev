@@ -77,7 +77,8 @@ export const createPixPayment = onCall(
         }
         const sale = snap.data()!;
         if (sale.status !== "PENDING_PAYMENT" ||
-            sale.paymentStatus === "APPROVED") {
+            sale.paymentStatus === "APPROVED" ||
+            (sale.paymentMethod && sale.paymentMethod !== "PIX")) {
           throw new HttpsError("failed-precondition", "Venda não disponível.");
         }
         if (Date.now() >= saleDeadline(sale)) {

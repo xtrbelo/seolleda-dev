@@ -125,9 +125,10 @@ export const mercadoPagoWebhook = onRequest(
         const sale = saleSnap.data()!;
 
         // Validações de segurança e consistência
+        const attemptKey = sale.paymentMethod === "CARD" ?
+          sale.cardIdempotencyKey : sale.pixIdempotencyKey;
         if (!sale.mercadoPagoPaymentId &&
-            (!sale.pixIdempotencyKey ||
-             payment.attemptId !== sale.pixIdempotencyKey)) {
+            (!attemptKey || payment.attemptId !== attemptKey)) {
           // Only bind an early notification to the persisted immutable attempt.
           throw new Error("PAYMENT_LINK_PENDING");
         }
@@ -154,9 +155,12 @@ export const mercadoPagoWebhook = onRequest(
           return;
         }
 
-        if (sale.paymentMethod !== "PIX" ||
-            sale.paymentProvider !== "MERCADO_PAGO" ||
-            payment.paymentMethod !== "pix" || payment.currency !== "BRL") {
+        const methodMatches = sale.paymentMethod === "PIX" ?
+          payment.paymentMethod === "pix" : sale.paymentMethod === "CARD" ?
+            payment.paymentMethod !== "pix" &&
+            payment.paymentType === "credit_card" : false;
+        if (!methodMatches || sale.paymentProvider !== "MERCADO_PAGO" ||
+            payment.currency !== "BRL") {
           console.error(
             "mercadoPagoWebhook: Payment method mismatch",
             {saleId, paymentId},

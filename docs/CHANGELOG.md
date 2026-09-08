@@ -1,5 +1,18 @@
 # Histórico de versões
 
+## 1O — Pagamento por cartão online — Homologada e publicada em HML
+
+- Integração com o Checkout Transparente do Mercado Pago para tokenizar o cartão no navegador.
+- O backend recebe o token, a bandeira, o emissor, as parcelas e o e-mail do pagador; o número do cartão não é enviado ao Seolleda.
+- A cobrança usa o ciclo de reserva, confirmação por webhook, revisão e baixa transacional já aplicado ao Pix.
+- `createCardPayment`, `createPixPayment`, `mercadoPagoWebhook` e o Hosting foram publicados em `seolleda-dev` (HML).
+- O usuário confirmou uma venda de cartão aprovada no ambiente homologado.
+- A configuração de credenciais do provedor permanece administrada pelo usuário; nenhum segredo foi registrado na documentação.
+- O usuário autorizou manter credenciais de produção do Mercado Pago em HML; as cobranças são reais. Essa decisão não altera a identificação do projeto Firebase `seolleda-dev` como HML.
+- Validações anteriores ao fechamento: builds frontend/backend, lint backend e 20 testes de pagamentos aprovados; 6 testes de estoque aprovados. Avisos conhecidos do frontend e de tamanho do bundle permanecem.
+- No fechamento, os 4 testes de regras passaram no emulador do Firestore; diff sem erros de whitespace.
+- Fechamento de repositório autorizado pelo usuário: commit na `main` e tag anotada `release-1o` para identificar esta entrega.
+
 ## 1N — Testes automatizados de regras e fluxo — Em desenvolvimento
 
 - Testes no emulador do Firestore cobrem papéis, bloqueio de escritas diretas, escopo por loja e acesso global do administrador.
@@ -139,5 +152,5 @@ Validação anterior do estoque: cinco testes simulados de estoque e 17 testes P
 
 ## Próximas versões
 
-- Fase atual: 1I — operação de pagamentos em revisão, em desenvolvimento.
-- Pagamento por cartão continua adiado, conforme decisão do usuário; depende da definição da integração.
+- Fase atual: 1O — pagamento por cartão online, homologada e publicada em HML.
+- Fechamento de repositório da 1O autorizado; referência da entrega: `release-1o`.

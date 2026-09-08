@@ -4,6 +4,7 @@ import BarcodeScanner from "../components/checkout/BarcodeScanner";
 import CartItem from "../components/checkout/CartItem";
 import CartSummary from "../components/checkout/CartSummary";
 import PixPayment from "../components/checkout/PixPayment";
+import CardPayment from "../components/checkout/CardPayment";
 import { createSale, getCheckoutProduct } from "../services/saleService";
 import type { CartItem as CartItemType } from "../types/cart";
 
@@ -83,6 +84,7 @@ function CheckoutPage() {
   const [saleStatusToken, setSaleStatusToken] = useState("");
   const [backendTotalCents, setBackendTotalCents] = useState<number | null>(null);
   const [showPixFlow, setShowPixFlow] = useState(false);
+  const [showCardFlow, setShowCardFlow] = useState(false);
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "instant" });
@@ -110,6 +112,7 @@ function CheckoutPage() {
     setStep("welcome");
     setIsPaymentStepOpen(false);
     setShowPixFlow(false);
+    setShowCardFlow(false);
     setIsClearConfirmationOpen(false);
   }
 
@@ -256,6 +259,7 @@ function CheckoutPage() {
       setSaleStatusToken(sale.statusToken);
       setBackendTotalCents(sale.totalCents);
       setShowPixFlow(false);
+      setShowCardFlow(false);
       setIsPaymentStepOpen(true);
       setFeedback("");
     } catch {
@@ -500,7 +504,7 @@ function CheckoutPage() {
             aria-modal="true"
             aria-labelledby="payment-title"
           >
-            {!showPixFlow ? (
+            {!showPixFlow && !showCardFlow ? (
               <>
                 <span className="eyebrow">Próxima etapa</span>
                 <h2 id="payment-title">Escolha a forma de pagamento</h2>
@@ -520,14 +524,10 @@ function CheckoutPage() {
                   </button>
                   <button
                     type="button"
-                    onClick={() =>
-                      showFeedback(
-                        "Pagamento será implementado na próxima etapa.",
-                      )
-                    }
+                    onClick={() => setShowCardFlow(true)}
                   >
                     <strong>CARTÃO</strong>
-                    <span>Disponível em breve</span>
+                    <span>Crédito em até 12x</span>
                   </button>
                 </div>
                 <button
@@ -538,7 +538,7 @@ function CheckoutPage() {
                   Voltar para o carrinho
                 </button>
               </>
-            ) : (
+            ) : showPixFlow ? (
               <>
                 <span className="eyebrow">Pagamento</span>
                 <h2 id="payment-title">Pix</h2>
@@ -553,6 +553,25 @@ function CheckoutPage() {
                   type="button"
                   className="back-to-cart"
                   onClick={() => setShowPixFlow(false)}
+                >
+                  ← Outras formas de pagamento
+                </button>
+              </>
+            ) : (
+              <>
+                <span className="eyebrow">Pagamento</span>
+                <h2 id="payment-title">Cartão de crédito</h2>
+                <CardPayment
+                  saleId={saleId}
+                  statusToken={saleStatusToken}
+                  totalCents={backendTotalCents ?? 0}
+                  customerEmail={customerEmail}
+                  onPaymentApproved={resetSession}
+                />
+                <button
+                  type="button"
+                  className="back-to-cart"
+                  onClick={() => setShowCardFlow(false)}
                 >
                   ← Outras formas de pagamento
                 </button>

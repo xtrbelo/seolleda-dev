@@ -56,3 +56,11 @@ export type CreatePixPaymentResponse = {
   expiresAtMs: number;
   totalCents: number;
 };
+
+export type CreateCardPaymentResponse = {
+  saleId: string;
+  paymentId: string;
+  status: string;
+  statusDetail: string;
+  totalCents: number;
+};

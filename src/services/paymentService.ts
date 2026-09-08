@@ -12,6 +12,15 @@ type CreatePixPaymentRequest = {
   payerEmail?: string;
 };
 
+type CreateCardPaymentRequest = {
+  saleId: string;
+  token: string;
+  paymentMethodId: string;
+  issuerId?: number;
+  installments: number;
+  payerEmail?: string;
+};
+
 export type CreatePixPaymentResponse = {
   saleId: string;
   paymentId: string;
@@ -21,6 +30,14 @@ export type CreatePixPaymentResponse = {
   ticketUrl: string;
   totalCents: number;
   expiresAtMs: number;
+};
+
+export type CreateCardPaymentResponse = {
+  saleId: string;
+  paymentId: string;
+  status: string;
+  statusDetail: string;
+  totalCents: number;
 };
 
 // ---------------------------------------------------------------------------
@@ -42,5 +59,16 @@ export async function createPixPayment(
   >(functions, "createPixPayment");
 
   const response = await callable({ saleId, payerEmail });
+  return response.data;
+}
+
+export async function createCardPayment(
+  request: CreateCardPaymentRequest,
+): Promise<CreateCardPaymentResponse> {
+  const callable = httpsCallable<
+    CreateCardPaymentRequest,
+    CreateCardPaymentResponse
+  >(functions, "createCardPayment");
+  const response = await callable(request);
   return response.data;
 }

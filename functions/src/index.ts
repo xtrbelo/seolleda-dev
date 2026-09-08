@@ -11,6 +11,7 @@
 import {setGlobalOptions} from "firebase-functions";
 import {getCheckoutProduct} from "./checkout/getCheckoutProduct.js";
 import {createPixPayment} from "./payments/createPixPayment.js";
+import {createCardPayment} from "./payments/createCardPayment.js";
 import {getSalePaymentStatus} from "./payments/getSalePaymentStatus.js";
 import {mercadoPagoWebhook} from "./payments/mercadoPagoWebhook.js";
 import {createSale} from "./sales/createSale.js";
@@ -36,6 +37,7 @@ export {
   createSale,
   getCheckoutProduct,
   createPixPayment,
+  createCardPayment,
   getSalePaymentStatus,
   mercadoPagoWebhook,
 };
