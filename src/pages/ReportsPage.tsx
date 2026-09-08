@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { dayKey, loadReport, loadStockOverview } from "../services/reportService";
+import { useStockAlertPreferences } from "../lib/stockAlertPreferences";
 
 const money = (cents: number) => (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 type Report = Awaited<ReturnType<typeof loadReport>>;
@@ -9,6 +10,7 @@ function Metrics({ values }: { values: [string, string | number][] }) {
   return <div className="metric-grid">{values.map(([label, value]) => <div className="metric-card" key={label}><span>{label}</span><strong>{value}</strong></div>)}</div>;
 }
 export default function ReportsPage({ dashboard = false }: { dashboard?: boolean }) {
+  const stockAlerts = useStockAlertPreferences();
   const [from, setFrom] = useState(() => dayKey(new Date()));
   const [until, setUntil] = useState(() => dayKey(new Date()));
   const [request, setRequest] = useState(() => ({ from: dayKey(new Date()), until: dayKey(new Date()) }));
@@ -50,7 +52,14 @@ export default function ReportsPage({ dashboard = false }: { dashboard?: boolean
       {dashboard ? <>
         <h2>Estoque atual</h2><p>Saldo atual de todas as lojas, independente do período. Alertas contam registros de produto por loja já cadastrados no estoque.</p>
         {!result.stock && <p className="page-error">Não foi possível consultar o estoque. Use Atualizar para tentar novamente.</p>}
-        {result.stock && <Metrics values={[["Produtos cadastrados", result.stock.products], ["Saldo total em unidades", result.stock.quantity], ["Registros com estoque baixo", result.stock.low], ["Registros sem estoque", result.stock.empty], ["Registros com saldo negativo", result.stock.negative]]} />}
+        {result.stock && <Metrics values={([
+          ["Produtos cadastrados", result.stock.products],
+          ["Saldo total em unidades", result.stock.quantity],
+          ...(stockAlerts.low ? [["Registros com estoque baixo", result.stock.low] as [string, number]] : []),
+          ...(stockAlerts.empty ? [["Registros sem estoque", result.stock.empty] as [string, number]] : []),
+          ...(stockAlerts.negative ? [["Registros com saldo negativo", result.stock.negative] as [string, number]] : []),
+        ])} />}
+        {(!stockAlerts.low || !stockAlerts.empty || !stockAlerts.negative) && <p>Há alertas ocultos neste navegador. <Link to="/admin/configuracoes">Alterar preferências</Link></p>}
         <div className="sales-filters"><Link to="/admin/vendas">Consultar vendas</Link><Link to="/admin/estoque">Gerenciar estoque</Link><Link to="/admin/relatorios">Ver relatórios</Link></div>
       </> : <>
         <h2>Vendas pagas por dia de criação</h2>

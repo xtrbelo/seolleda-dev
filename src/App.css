@@ -2619,6 +2619,9 @@ body,
 }
 
 .settings-form { margin: 20px 0; padding: 20px; border: 1px solid #d8c4e7; border-radius: 12px; background: white; }
+.stock-alert-preferences { min-width: 0; margin: 0; padding: 16px; border: 1px solid #d8c4e7; border-radius: 8px; }
+.stock-alert-preferences label { display: flex; align-items: center; gap: 10px; min-height: 44px; cursor: pointer; }
+.stock-alert-preferences input { width: 20px; height: 20px; flex-shrink: 0; accent-color: #68358c; }
 .settings-form fieldset { border: 0; margin: 0; padding: 0; display: grid; gap: 14px; min-width: 0; }
 .settings-form label { display: grid; gap: 6px; }
 .settings-form input, .settings-form select { width: 100%; min-width: 0; padding: 12px; border: 1px solid #d8c4e7; border-radius: 8px; font: inherit; }

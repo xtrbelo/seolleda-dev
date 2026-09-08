@@ -11,6 +11,7 @@ import { listProducts } from "../services/productService";
 import type { Inventory } from "../types/inventory";
 import type { Product } from "../types/product";
 import type { StockMovement, StockMovementType } from "../types/stockMovement";
+import { useStockAlertPreferences, type StockAlertPreferences } from "../lib/stockAlertPreferences";
 
 type MovementModal = "ENTRY" | "EXIT" | "ADJUSTMENT" | null;
 
@@ -32,7 +33,10 @@ function formatDateTime(date: StockMovement["createdAt"]) {
   return date.toDate().toLocaleString("pt-BR");
 }
 
-function statusFor(quantity: number, minimumQuantity: number) {
+function statusFor(quantity: number, minimumQuantity: number, preferences: StockAlertPreferences) {
+  const kind = quantity < 0 ? "negative" : quantity === 0 ? "empty" : quantity <= minimumQuantity ? "low" : null;
+  if (kind && !preferences[kind]) return { label: "Alerta oculto", className: "" };
+  if (quantity < 0) return { label: "Saldo negativo", className: "stock-empty" };
   if (quantity === 0) return { label: "Sem estoque", className: "stock-empty" };
   if (quantity <= minimumQuantity) {
     return { label: "Estoque baixo", className: "stock-low" };
@@ -41,6 +45,7 @@ function statusFor(quantity: number, minimumQuantity: number) {
 }
 
 function StockPage() {
+  const stockAlerts = useStockAlertPreferences();
   const { user } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [inventory, setInventory] = useState<Inventory[]>([]);
@@ -265,7 +270,7 @@ function StockPage() {
                 const item = getInventory(product.id);
                 const currentQuantity = item?.quantity ?? 0;
                 const minimumQuantity = item?.minimumQuantity ?? 0;
-                const status = statusFor(currentQuantity, minimumQuantity);
+                const status = statusFor(currentQuantity, minimumQuantity, stockAlerts);
                 return (
                   <tr key={product.id}>
                     <td>

@@ -1,8 +1,21 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { getSettings, saveStore, saveTerminal, type Settings, type StoreSettings, type TerminalSettings } from "../services/settingsService";
 import { APP_VERSION_LABEL } from "../lib/appVersion";
+import { defaultStockAlerts, saveStockAlertPreferences, useStockAlertPreferences, type StockAlertPreferences } from "../lib/stockAlertPreferences";
 
 export default function SettingsPage() {
+  const stockAlerts = useStockAlertPreferences();
+  const [preferenceMessage, setPreferenceMessage] = useState("");
+  const [preferenceError, setPreferenceError] = useState("");
+  function saveAlerts(value: StockAlertPreferences) {
+    setPreferenceMessage(""); setPreferenceError("");
+    try {
+      saveStockAlertPreferences(value);
+      setPreferenceMessage("Preferências salvas neste navegador.");
+    } catch {
+      setPreferenceError("Não foi possível salvar. Verifique se o navegador permite armazenamento local.");
+    }
+  }
   const [data, setData] = useState<Settings>({ stores: [], terminals: [] });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -33,6 +46,19 @@ export default function SettingsPage() {
     {loading && <p role="status">Carregando…</p>}
     {error && <p className="page-error" role="alert">{error}</p>}
     {notice && <p className="success-message" role="status">{notice}</p>}
+    <h2>Alertas de estoque</h2>
+    <p>Escolha os alertas exibidos em Estoque e Visão geral. As preferências são compartilhadas por quem usa este navegador e não são sincronizadas com outros dispositivos. Saldos, mínimos e regras de venda não mudam.</p>
+    <fieldset className="stock-alert-preferences">
+      <legend>Exibição dos alertas</legend>
+      {([
+        ["low", "Exibir estoque baixo (saldo positivo até o mínimo)"],
+        ["empty", "Exibir estoque zerado"],
+        ["negative", "Exibir saldo negativo"],
+      ] as const).map(([key, label]) => <p key={key}><label><input type="checkbox" checked={stockAlerts[key]} onChange={(event) => saveAlerts({ ...stockAlerts, [key]: event.target.checked })} /> {label}</label></p>)}
+      <button type="button" onClick={() => saveAlerts(defaultStockAlerts)}>Restaurar todos os alertas</button>
+    </fieldset>
+    {preferenceMessage && <p className="success-message" role="status">{preferenceMessage}</p>}
+    {preferenceError && <p className="page-error" role="alert">{preferenceError}</p>}
     <h2>Lojas</h2>
     <div className="stock-table-wrap"><table className="stock-table"><thead><tr><th>Nome</th><th>Endereço</th><th>Contato</th><th>Ações</th></tr></thead><tbody>{data.stores.map((item) => <tr key={item.id}><td>{item.name}</td><td>{item.address || "—"}</td><td>{item.contact || "—"}</td><td><button disabled={busy} onClick={() => { setStore({ ...item }); setTerminal(null); }}>Editar</button></td></tr>)}</tbody></table></div>
     {!loading && !data.stores.length && <p>Nenhuma loja cadastrada. Abra Estoque para inicializar a loja principal.</p>}

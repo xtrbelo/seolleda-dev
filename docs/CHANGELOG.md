@@ -1,5 +1,16 @@
 # Histórico de versões
 
+## 1E — Preferências de alertas de estoque — Em desenvolvimento
+
+- Configurações para exibir/ocultar alertas de estoque baixo, zerado e negativo; todos habilitados por padrão e botão para restaurá-los.
+- Preferências locais por navegador e projeto Firebase, compartilhadas pelos usuários desse navegador; atualização entre abas. Não sincronizadas entre dispositivos.
+- Aplicação na situação do Estoque e nos indicadores da Visão geral. Saldos continuam visíveis; alerta oculto não é apresentado como estoque normal.
+- Saldo negativo identificado separadamente de estoque baixo. Mínimos, backend, regras e pagamento preservados.
+- Usuário confirmou teste funcional e homologação da 1E, além de lint e build do frontend sem erros.
+- Lint do backend reportou 124 erros de quebra de linha em src/index.ts e src/sales/manageSettings.ts. Arquivos normalizados de CRLF para LF, sem alteração de lógica; execução posterior concluída sem erros.
+- Usuário enviou resultado de 22 testes aprovados, sem falhas, e saída do diff-check contendo apenas avisos de conversão LF/CRLF. Adicionados .gitattributes e .editorconfig para preservar LF nos arquivos TypeScript/JavaScript do backend e evitar recorrência do erro de lint.
+- Usuário confirmou a validação final sem erros, incluindo lint/build do backend e 22 testes aprovados. Publicação autorizada: somente Hosting em seolleda-dev (HML). Commit e tag pendentes até o fechamento.
+
 ## 1D — Configurações — Publicada em HML
 
 - Usuário homologou o fluxo inicial. Ajuste posterior: identificação de novos terminais gerada automaticamente no backend; IDs existentes preservados. Identificação automática testada com sucesso pelo usuário.
@@ -58,6 +69,5 @@ Validação anterior do estoque: cinco testes simulados de estoque e 17 testes P
 
 ## Próximas versões
 
-- 1B: gestão de Vendas.
-- 1C: relatórios e dashboard.
-- 1D: cartão, após definição da integração.
+- Fase atual: 1E — preferências de exibição dos alertas de estoque, em desenvolvimento.
+- Pagamento por cartão continua adiado, conforme decisão do usuário; depende da definição da integração.
