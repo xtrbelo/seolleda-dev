@@ -1,15 +1,12 @@
 import {
-  addDoc,
   collection,
-  doc,
   getDocs,
   limit,
   query,
-  serverTimestamp,
-  updateDoc,
   where,
 } from "firebase/firestore";
-import { db } from "../lib/firebase";
+import {getFunctions, httpsCallable} from "firebase/functions";
+import { app, db } from "../lib/firebase";
 import type { Product, ProductInput } from "../types/product";
 
 const productsCollection = collection(db, "products");
@@ -52,40 +49,7 @@ function cleanProductInput(input: ProductInput) {
   };
 }
 
-async function findDuplicate(
-  input: ReturnType<typeof cleanProductInput>,
-  productId?: string,
-) {
-  const [skuSnapshot, barcodeSnapshot] = await Promise.all([
-    getDocs(
-      query(
-        productsCollection,
-        where("normalizedSku", "==", input.normalizedSku),
-        limit(2),
-      ),
-    ),
-    getDocs(
-      query(
-        productsCollection,
-        where("barcode", "==", input.barcode),
-        limit(2),
-      ),
-    ),
-  ]);
-
-  if (
-    skuSnapshot.docs.some((productDocument) => productDocument.id !== productId)
-  ) {
-    throw new Error("PRODUCT_DUPLICATE_SKU");
-  }
-  if (
-    barcodeSnapshot.docs.some(
-      (productDocument) => productDocument.id !== productId,
-    )
-  ) {
-    throw new Error("PRODUCT_DUPLICATE_BARCODE");
-  }
-}
+const manageProducts = httpsCallable(getFunctions(app, "southamerica-east1"), "manageProducts");
 
 export async function listProducts(): Promise<Product[]> {
   const snapshot = await getDocs(productsCollection);
@@ -119,28 +83,14 @@ export async function getProductByBarcode(
 
 export async function createProduct(input: ProductInput) {
   const cleanInput = cleanProductInput(input);
-  await findDuplicate(cleanInput);
-
-  await addDoc(productsCollection, {
-    ...cleanInput,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  });
+  await manageProducts({action: "create", product: cleanInput});
 }
 
 export async function updateProduct(productId: string, input: ProductInput) {
   const cleanInput = cleanProductInput(input);
-  await findDuplicate(cleanInput, productId);
-
-  await updateDoc(doc(db, "products", productId), {
-    ...cleanInput,
-    updatedAt: serverTimestamp(),
-  });
+  await manageProducts({action: "update", id: productId, product: cleanInput});
 }
 
 export async function updateProductStatus(productId: string, active: boolean) {
-  await updateDoc(doc(db, "products", productId), {
-    active,
-    updatedAt: serverTimestamp(),
-  });
+  await manageProducts({action: "status", id: productId, active});
 }

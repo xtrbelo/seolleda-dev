@@ -1,5 +1,12 @@
 # Histórico de versões
 
+## 1K — Unicidade de SKU e código de barras no backend — Em desenvolvimento
+
+- Cadastro, edição e ativação de produtos passam pela Function autenticada `manageProducts`.
+- Chaves únicas transacionais impedem concorrência com o mesmo SKU normalizado ou código de barras.
+- As regras do Firestore bloqueiam gravações diretas na coleção de produtos e nas chaves de unicidade.
+- Frontend e backend compilados, lint aprovado, `manageProducts`, regras e Hosting publicados em `seolleda-dev` com `Deploy complete`. Usuário confirmou a homologação funcional da 1K.
+
 ## 1J — Auditoria operacional — Publicada em HML
 
 - Nova consulta administrativa somente leitura para alterações de lojas e terminais.

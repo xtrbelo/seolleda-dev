@@ -54,15 +54,11 @@ service cloud.firestore {
 
     match /products/{productId} {
       allow read: if canCatalog() || canReports() || canInventory() || canSales();
-      allow create: if canCatalog()
-        && validProduct(request.resource.data)
-        && request.resource.data.createdAt == request.time
-        && request.resource.data.updatedAt == request.time;
-      allow update: if canCatalog()
-        && validProduct(request.resource.data)
-        && request.resource.data.createdAt == resource.data.createdAt
-        && request.resource.data.updatedAt == request.time;
-      allow delete: if canCatalog();
+      allow create, update, delete: if false;
+    }
+
+    match /productKeys/{keyId} {
+      allow read, write: if false;
     }
 
     match /categories/{categoryId} {
