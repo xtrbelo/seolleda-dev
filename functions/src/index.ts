@@ -53,3 +53,4 @@ export {listAdminSales} from "./sales/listAdminSales.js";
 export {listSettingsAudit} from "./sales/listSettingsAudit.js";
 export {manageProducts} from "./catalog/manageProducts.js";
 export {getAdminReport} from "./reports/getAdminReport.js";
+export {managePayment} from "./payments/managePayment.js";

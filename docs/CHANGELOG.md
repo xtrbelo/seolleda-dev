@@ -1,5 +1,20 @@
 # Histórico de versões
 
+## 1Q — Operações de pagamentos em revisão, cancelamento e reembolso — Homologada e publicada em HML
+
+- Administradores podem consultar o estado atual no Mercado Pago, cancelar cobranças pendentes e solicitar reembolso integral com motivo obrigatório.
+- Identificação persistida antes do envio evita duplicar reembolsos em repetições; operação, motivo, usuário e confirmação ficam registrados no backend.
+- Webhook reconhece cancelamento, reembolso e contestação mesmo após venda paga, sem permitir que notificações antigas reabram vendas encerradas.
+- Reservas consistentes são liberadas transacionalmente. Produtos de vendas já pagas não retornam automaticamente ao estoque; a venda fica sinalizada para conferência física.
+- Consulta não aprova manualmente uma venda em revisão. Reembolso parcial e resolução manual de estoque ficam fora desta fase.
+- Implementação e validação local concluídas. Git, builds, testes e deploy são executados pelo usuário.
+- Revalidação confirmada pelo usuário em 08/09/2026: lint e build backend sem erros e 37 testes de negócio aprovados, após corrigir o erro `curly` e a preparação das reservas nos testes. Frontend já validado com build aprovado e sete avisos de lint sem erros. Diff-check apresentou somente avisos de conversão LF/CRLF.
+- Os quatro testes de regras passaram no emulador do Firestore, com saída 0 confirmada pelo usuário. Mensagens de permissão negada correspondem aos bloqueios esperados pelos testes.
+- Diff enviado pelo usuário e os dois arquivos novos (`managePayment.ts` e `reconcilePayment.ts`) revisados. Escopo da 1Q conferido; cache gerado do Hosting excluído da seleção para commit.
+- Alvos publicados: `managePayment`, `mercadoPagoWebhook`, `listAdminSales` e Hosting, exclusivamente em `seolleda-dev` (HML).
+- Usuário autorizou e executou a publicação em `seolleda-dev` (HML) em 08/09/2026. `managePayment` foi criada; `mercadoPagoWebhook` e `listAdminSales` foram atualizadas; Hosting foi publicado. A saída confirmou sucesso em todos os alvos e `Deploy complete`.
+- Após a publicação, o usuário confirmou a homologação funcional da 1Q sem erros.
+
 ## 1P — Confiabilidade de reservas e paginação — Homologada e publicada em HML
 
 - A limpeza agendada busca somente vendas pendentes vencidas, em lotes ordenados, evitando que vendas já processadas bloqueiem a fila.
@@ -162,5 +177,5 @@ Validação anterior do estoque: cinco testes simulados de estoque e 17 testes P
 
 ## Próximas versões
 
-- Fase atual: 1O — pagamento por cartão online, homologada e publicada em HML.
-- Fechamento de repositório da 1O autorizado; referência da entrega: `release-1o`.
+- Fase atual: 1Q — operações de pagamentos em revisão, cancelamento e reembolso, homologada e publicada em HML.
+- Fase anterior: 1P homologada e publicada em HML.

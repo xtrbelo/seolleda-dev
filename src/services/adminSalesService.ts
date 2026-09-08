@@ -8,6 +8,10 @@ export type AdminSale = {
   createdAt?: Timestamp; paidAt?: Timestamp; expiresAt?: Timestamp;
   paymentReconciliationRequired?: boolean; stockReconciliationRequired?: boolean;
   paymentReviewReason?: string;
+  mercadoPagoPaymentStatus?: string;
+  paymentOperationState?: string;
+  paymentOperationAction?: string;
+  paymentOperationReason?: string;
   items: {productId: string; name: string; sku: string; quantity: number; unitPriceCents: number; totalCents: number}[];
 };
 export type SalesCursor = {createdAtMs: number; id: string};
@@ -24,8 +28,15 @@ export async function listAdminSales(from: Date, until: Date, cursor?: SalesCurs
 }
 
 export function saleSituation(sale: AdminSale, now: number): string {
+  if (sale.status === "CHARGED_BACK") return "Contestada";
   if (sale.status === "PAYMENT_REVIEW_REQUIRED" || sale.paymentReconciliationRequired) return "Revisão de pagamento";
   if (sale.status === "PAID") return "Paga";
   if (sale.status === "PENDING_PAYMENT") return sale.expiresAt && sale.expiresAt.toMillis() <= now ? "Prazo encerrado" : "Pendente";
   return ({CANCELLED: "Cancelada", EXPIRED: "Prazo encerrado", REFUNDED: "Estornada"} as Record<string, string>)[sale.status] ?? sale.status;
+}
+
+export type PaymentAction = "CHECK" | "CANCEL" | "REFUND";
+export async function managePayment(saleId: string, action: PaymentAction, reason: string) {
+  const operation = httpsCallable<{saleId: string; action: PaymentAction; reason: string}, {status: string; confirmed: boolean}>(getFunctions(app, "southamerica-east1"), "managePayment");
+  return (await operation({saleId, action, reason})).data;
 }

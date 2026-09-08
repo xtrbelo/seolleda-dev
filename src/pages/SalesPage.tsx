@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { listAdminSales, saleSituation, type AdminSale, type SalesCursor } from "../services/adminSalesService";
+import { listAdminSales, managePayment, saleSituation, type AdminSale, type SalesCursor, type PaymentAction } from "../services/adminSalesService";
+import { useAuth } from "../contexts/AuthContext";
 
 const money = (cents: number) => (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const date = (value: AdminSale["createdAt"]) => value?.toDate().toLocaleString("pt-BR") ?? "—";
+const providerStatus = (value?: string) => ({pending: "Pendente", in_process: "Em processamento", authorized: "Autorizado", approved: "Aprovado", rejected: "Recusado", cancelled: "Cancelado", refunded: "Reembolsado", charged_back: "Contestado"} as Record<string, string>)[value ?? ""] ?? (value || "Não consultada");
 function localDay() {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
@@ -15,6 +17,11 @@ const paymentReviewReason = (reason?: string) => ({
 } as Record<string, string>)[reason ?? ""] ?? "Conferência manual necessária no provedor.";
 
 export default function SalesPage() {
+  const { roles } = useAuth();
+  const [operation, setOperation] = useState<PaymentAction>("CHECK");
+  const [reason, setReason] = useState("");
+  const [operating, setOperating] = useState(false);
+  const [operationMessage, setOperationMessage] = useState("");
   const [from, setFrom] = useState(localDay);
   const [until, setUntil] = useState(localDay);
   const [period, setPeriod] = useState({ from: localDay(), until: localDay() });
@@ -29,6 +36,23 @@ export default function SalesPage() {
   const [now, setNow] = useState(Date.now);
   const requestId = useRef(0);
   const dialog = useRef<HTMLDialogElement>(null);
+
+  async function operate(event: FormEvent) {
+    event.preventDefault();
+    if (!selected || operating) return;
+    setOperating(true);
+    setOperationMessage("");
+    try {
+      const result = await managePayment(selected.id, operation, reason);
+      setOperationMessage(result.confirmed ? "Encerramento confirmado pelo provedor. Feche os detalhes para ver a lista atualizada." : `Situação no provedor: ${providerStatus(result.status)}. ${operation === "CHECK" ? "Esta consulta não aprova manualmente uma venda em revisão." : "Operação enviada; consulte novamente para confirmar o resultado."}`);
+      if (result.confirmed) setOperation("CHECK");
+      setSelected((current) => current ? {...current, mercadoPagoPaymentStatus: result.status,
+        ...(result.confirmed ? {status: result.status === "refunded" ? "REFUNDED" : result.status === "cancelled" ? "CANCELLED" : "CHARGED_BACK", paymentReconciliationRequired: false} : {})} : null);
+      await load(period);
+    } catch (error) {
+      setOperationMessage(error instanceof Error ? error.message : "Não foi possível confirmar a operação. Consulte novamente.");
+    } finally { setOperating(false); }
+  }
 
   async function load(range: typeof period, after?: SalesCursor) {
     const id = ++requestId.current;
@@ -92,7 +116,7 @@ export default function SalesPage() {
       <label>Buscar<input type="search" placeholder="Venda ou terminal" value={search} onChange={(e) => setSearch(e.target.value)} /></label>
       <label>Situação<select value={status} onChange={(e) => setStatus(e.target.value)}>
         <option value="">Todas</option>
-        {["Paga", "Pendente", "Prazo encerrado", "Revisão de pagamento", "Cancelada", "Estornada"].map((label) => <option key={label}>{label}</option>)}
+        {["Paga", "Pendente", "Prazo encerrado", "Revisão de pagamento", "Cancelada", "Estornada", "Contestada"].map((label) => <option key={label}>{label}</option>)}
         <option value="Estoque">Revisão de estoque</option>
       </select></label>
     </div>
@@ -109,14 +133,14 @@ export default function SalesPage() {
       <tbody>{visible.map((sale) => <tr key={sale.id}>
         <td>{date(sale.createdAt)}</td><td>{sale.id}</td><td>{sale.terminalId}</td><td>{money(sale.totalCents)}</td>
         <td>{saleSituation(sale, now)}{sale.stockReconciliationRequired && <small className="inactive-label">Revisar estoque</small>}</td>
-        <td><button type="button" onClick={() => setSelected(sale)} aria-label={`Ver detalhes da venda ${sale.id}`}>Detalhes</button></td>
+        <td><button type="button" onClick={() => { setSelected(sale); setOperation("CHECK"); setReason(""); setOperationMessage(""); }} aria-label={`Ver detalhes da venda ${sale.id}`}>Detalhes</button></td>
       </tr>)}</tbody>
     </table>{!loading && visible.length === 0 && <p className="table-message">Nenhuma venda encontrada nos dados carregados.</p>}</div>
     {loading && <p role="status">Carregando vendas…</p>}
     {hasMore && <button className="secondary-button" disabled={loading} onClick={() => void load(period, cursor)}>Carregar mais vendas</button>}
-    <dialog ref={dialog} className="sales-dialog" onCancel={() => setSelected(null)} onClose={() => setSelected(null)} aria-labelledby="sale-detail-title">
+    <dialog ref={dialog} className="sales-dialog" onCancel={(event) => { if (operating) event.preventDefault(); else setSelected(null); }} onClose={() => setSelected(null)} aria-labelledby="sale-detail-title">
       {selected && <>
-        <div className="modal-header"><h2 id="sale-detail-title">Detalhes da venda</h2><button type="button" onClick={() => setSelected(null)} aria-label="Fechar detalhes">Fechar</button></div>
+        <div className="modal-header"><h2 id="sale-detail-title">Detalhes da venda</h2><button type="button" disabled={operating} onClick={() => setSelected(null)} aria-label="Fechar detalhes">Fechar</button></div>
         <p className="sales-id">{selected.id}</p>
         <dl className="sales-details">
           <dt>Situação</dt><dd>{saleSituation(selected, now)}</dd>
@@ -128,12 +152,30 @@ export default function SalesPage() {
           <dt>Pagamento no provedor</dt><dd>{selected.mercadoPagoPaymentId ?? "—"}</dd>
         </dl>
         {saleSituation(selected, now) === "Prazo encerrado" && <p>O prazo local terminou. Isso não confirma cancelamento da cobrança no provedor.</p>}
-        {(selected.paymentReconciliationRequired || selected.status === "PAYMENT_REVIEW_REQUIRED") && <p className="page-error">Pagamento exige conferência no provedor. Esta tela não realiza estorno nem aprovação manual.</p>}
+        {(selected.paymentReconciliationRequired || selected.status === "PAYMENT_REVIEW_REQUIRED") && <p className="page-error">Pagamento exige conferência. O administrador pode consultar o provedor e solicitar reembolso integral.</p>}
         {(selected.paymentReconciliationRequired || selected.status === "PAYMENT_REVIEW_REQUIRED") && <p><strong>Motivo:</strong> {paymentReviewReason(selected.paymentReviewReason)}</p>}
         {selected.stockReconciliationRequired && <p className="page-error">Estoque exige conferência. Consulte o histórico de movimentações antes de ajustar o saldo.</p>}
         <div className="stock-table-wrap"><table className="stock-table"><thead><tr><th>Produto / SKU</th><th>Qtd.</th><th>Unitário</th><th>Total</th></tr></thead>
           <tbody>{(selected.items ?? []).map((item) => <tr key={item.productId}><td>{item.name}<small className="inactive-label">{item.sku}</small></td><td>{item.quantity}</td><td>{money(item.unitPriceCents)}</td><td>{money(item.totalCents)}</td></tr>)}</tbody></table></div>
         <p><strong>Total: {money(selected.totalCents)}</strong></p>
+        {roles.includes("admin") && selected.mercadoPagoPaymentId && <form onSubmit={operate}>
+          <h3>Operações de pagamento</h3>
+          <p>Última situação no provedor: {providerStatus(selected.mercadoPagoPaymentStatus)}.</p>
+          {selected.paymentOperationState && <p>Operação registrada: {selected.paymentOperationAction === "REFUND" ? "Reembolso" : "Cancelamento"} — {selected.paymentOperationState === "CONFIRMED" ? "Confirmada" : "Aguardando confirmação"}. Motivo: {selected.paymentOperationReason || "—"}</p>}
+          <label>Operação<select value={operation} disabled={operating} onChange={(event) => setOperation(event.target.value as PaymentAction)}>
+            <option value="CHECK">Consultar situação no provedor</option>
+            {!["CANCELLED", "REFUNDED", "CHARGED_BACK"].includes(selected.status) && <>
+              <option value="CANCEL">Cancelar cobrança pendente</option>
+              <option value="REFUND">Reembolsar valor integral</option>
+            </>}
+          </select></label>
+          {operation !== "CHECK" && <>
+            <label>Motivo<textarea required minLength={5} maxLength={500} value={reason} disabled={operating} onChange={(event) => setReason(event.target.value)} /></label>
+            <p>{operation === "REFUND" ? `Você confirma o reembolso integral de ${money(selected.totalCents)} desta venda. Produtos vendidos não voltam automaticamente ao estoque; confira a devolução física.` : "Você confirma o cancelamento desta cobrança, se ainda estiver pendente no provedor."}</p>
+          </>}
+          <button type="submit" disabled={operating}>{operating ? "Consultando provedor…" : operation === "CHECK" ? "Consultar provedor" : operation === "REFUND" ? "Confirmar reembolso integral" : "Confirmar cancelamento"}</button>
+          {operationMessage && <p role="status">{operationMessage}</p>}
+        </form>}
       </>}
     </dialog>
   </section>;

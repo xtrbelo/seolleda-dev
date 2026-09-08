@@ -1,5 +1,30 @@
+/* eslint-disable max-len */
 /** Payments API only. Never log provider responses or credentials. */
 const MP_PAYMENTS_URL = "https://api.mercadopago.com/v1/payments";
+
+/** Cancel a pending payment or request its full refund.
+ * @param {string} paymentId Verified payment identifier.
+ * @param {string} action Operation.
+ * @param {string} accessToken Server secret.
+ * @param {string} key Persisted idempotency key.
+ */
+export async function changeMpPayment(paymentId: string, action: "CANCEL" | "REFUND", accessToken: string, key: string): Promise<void> {
+  if (!/^\d+$/.test(paymentId)) throw new Error("MP_INVALID_ID");
+  const response = await fetch(`${MP_PAYMENTS_URL}/${paymentId}${action === "REFUND" ? "/refunds" : ""}`, {
+    method: action === "REFUND" ? "POST" : "PUT",
+    headers: {
+      "Authorization": `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+      "X-Idempotency-Key": key,
+    },
+    body: JSON.stringify(action === "REFUND" ? {} : {status: "cancelled"}),
+    signal: AbortSignal.timeout(15000),
+  });
+  if (!response.ok) {
+    await reportHttpError(response);
+    throw new Error(`MP_HTTP_${response.status}`);
+  }
+}
 
 /** @param {Response} response Failed provider response.
  * @return {Promise<void>} Logs only allowlisted categories and numeric codes.

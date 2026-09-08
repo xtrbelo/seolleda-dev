@@ -34,7 +34,8 @@ function fixture() {
       get: (key) => value?.[key]};
   };
   const firestore = {
-    collection: (name) => ({doc: (id) => ({path: name + "/" + id})}),
+    collection: (name) => ({doc: (id) => ({path: name + "/" + id,
+      get: async () => snapshot({path: name + "/" + id})})}),
     runTransaction: (callback) => {
       const result = queue.then(async () => {
         const writes = [];
@@ -65,6 +66,12 @@ function fixture() {
   const fakeFetch = async (url, options) => {
     http.push({url, ...options});
     if (httpFailure) return httpFailure;
+    if (url.endsWith("/refunds") || options.method === "PUT") {
+      const payment = [...payments.values()][0].data;
+      payment.status = url.endsWith("/refunds") ? "refunded" : "cancelled";
+      if (afterPost) await afterPost();
+      return {ok: true, json: async () => ({})};
+    }
     if (options.method === "POST") {
       const key = options.headers["X-Idempotency-Key"];
       const body = JSON.parse(options.body);
@@ -110,6 +117,7 @@ function fixture() {
       };
       if (id.startsWith("./")) return load(id.slice(2));
       if (id === "crypto") return crypto;
+      if (id === "../auth/roles.js") return require("../lib/auth/roles.js");
       throw new Error("Unexpected dependency " + id);
     };
     vm.runInNewContext(readFileSync(file, "utf8"), {
@@ -121,6 +129,7 @@ function fixture() {
   const create = load("createPixPayment.js").createPixPayment;
   const createCard = load("createCardPayment.js").createCardPayment;
   const handler = load("mercadoPagoWebhook.js").mercadoPagoWebhook;
+  const manage = load("managePayment.js").managePayment;
   const webhook = async (overrides = {}) => {
     const ts = String(Date.now());
     const signature = crypto.createHmac("sha256", "test-signature-key")
@@ -138,6 +147,9 @@ function fixture() {
   };
   return {
     docs, http, payments, webhook, errors,
+    manage: (action, auth = {uid: "admin1", token: {roles: ["admin"]}}) => manage({
+      auth, data: {saleId: "sale1", action, reason: "Solicitação do cliente"},
+    }),
     rejectHttp: (body) => {
       httpFailure = {ok: false, status: 401, json: async () => body};
     },
@@ -401,4 +413,112 @@ test("approved card payment consumes the reservation exactly once", async () => 
   assert.equal(f.movementCount(), 1);
   assert.equal((await f.webhook()).code, 200);
   assert.equal(f.movementCount(), 1);
+});
+
+test("payment operations reject sales role before provider access", async () => {
+  const f = fixture();
+  await assert.rejects(f.manage("REFUND", {uid: "sales1", token: {roles: ["sales"], storeIds: ["store1"]}}), {code: "permission-denied"});
+  assert.equal(f.http.length, 0);
+});
+
+test("cancellation releases reservation once and records administrator reason", async () => {
+  const f = fixture();
+  f.sale().reservationStatus = "RESERVED";
+  f.docs.get("inventory/store1_p1").reservedQuantity = 2;
+  await f.create();
+  const result = await f.manage("CANCEL");
+  assert.equal(result.confirmed, true);
+  assert.equal(f.sale().status, "CANCELLED");
+  assert.equal(f.sale().reservationStatus, "RELEASED");
+  assert.equal(f.sale().stockReconciliationRequired, false);
+  assert.equal(f.docs.get("inventory/store1_p1").reservedQuantity, 0);
+  assert.equal(f.docs.get("inventory/store1_p1").quantity, 8);
+  const key = f.sale().paymentOperationKey;
+  assert.equal(f.docs.get(`paymentOperations/${key}`).userId, "admin1");
+  assert.equal(f.docs.get(`paymentOperations/${key}`).reason, "Solicitação do cliente");
+  await f.manage("CANCEL");
+  assert.equal((await f.webhook()).code, 200);
+  assert.equal(f.http.filter((call) => call.method === "PUT").length, 1);
+  assert.equal(f.docs.get("inventory/store1_p1").reservedQuantity, 0);
+});
+
+test("full refund preserves sold stock and ignores later approval notification", async () => {
+  const f = fixture();
+  await f.createCard();
+  f.approve();
+  await f.webhook();
+  await f.manage("REFUND");
+  assert.equal(f.sale().status, "REFUNDED");
+  assert.equal(f.sale().stockReconciliationRequired, true);
+  assert.equal(f.docs.get("inventory/store1_p1").quantity, 6);
+  await f.manage("REFUND");
+  assert.equal(f.http.filter((call) => call.url.endsWith("/refunds")).length, 1);
+  f.approve();
+  await f.webhook();
+  assert.equal(f.sale().status, "REFUNDED");
+  assert.equal(f.movementCount(), 1);
+});
+
+test("refund resolves payment review without consuming stock", async () => {
+  const f = fixture();
+  f.sale().reservationStatus = "RESERVED";
+  f.docs.get("inventory/store1_p1").reservedQuantity = 2;
+  await f.create();
+  f.approve();
+  Object.assign(f.sale(), {status: "PAYMENT_REVIEW_REQUIRED", paymentReconciliationRequired: true});
+  await f.manage("REFUND");
+  assert.equal(f.sale().status, "REFUNDED");
+  assert.equal(f.sale().paymentReconciliationRequired, false);
+  assert.equal(f.sale().reservationStatus, "RELEASED");
+  assert.equal(f.sale().stockReconciliationRequired, false);
+  assert.equal(f.docs.get("inventory/store1_p1").quantity, 8);
+  assert.equal(f.docs.get("inventory/store1_p1").reservedQuantity, 0);
+});
+
+test("refund refuses mismatched provider amount before mutation", async () => {
+  const f = fixture();
+  await f.create();
+  f.approve();
+  f.payment().transaction_amount = 1;
+  await assert.rejects(f.manage("REFUND"), {code: "unavailable"});
+  assert.equal(f.http.filter((call) => call.url.endsWith("/refunds")).length, 0);
+  assert.equal(f.sale().paymentOperationKey, undefined);
+});
+
+test("inconsistent cancellation reservation is flagged without partial release", async () => {
+  const f = fixture();
+  f.sale().reservationStatus = "RESERVED";
+  await f.create();
+  f.docs.get("inventory/store1_p1").reservedQuantity = 1;
+  await f.manage("CANCEL");
+  assert.equal(f.sale().status, "CANCELLED");
+  assert.equal(f.sale().reservationStatus, "RELEASE_REVIEW_REQUIRED");
+  assert.equal(f.sale().stockReconciliationRequired, true);
+  assert.equal(f.docs.get("inventory/store1_p1").reservedQuantity, 1);
+});
+
+test("lost refund response is recovered by querying without a second refund", async () => {
+  const f = fixture();
+  await f.create();
+  f.approve();
+  f.afterPost(() => { throw new Error("lost provider response"); });
+  await assert.rejects(f.manage("REFUND"), {code: "unavailable"});
+  assert.ok(f.sale().paymentOperationKey);
+  assert.equal(f.sale().paymentOperationState, "REQUESTED");
+  f.afterPost(null);
+  const result = await f.manage("CHECK");
+  assert.equal(result.confirmed, true);
+  assert.equal(f.sale().status, "REFUNDED");
+  assert.equal(f.http.filter((call) => call.url.endsWith("/refunds")).length, 1);
+});
+
+test("consultation preserves review and cannot approve a sale manually", async () => {
+  const f = fixture();
+  await f.create();
+  f.approve();
+  Object.assign(f.sale(), {status: "PAYMENT_REVIEW_REQUIRED", paymentReconciliationRequired: true});
+  await f.manage("CHECK");
+  assert.equal(f.sale().status, "PAYMENT_REVIEW_REQUIRED");
+  assert.equal(f.sale().paymentReconciliationRequired, true);
+  assert.equal(f.movementCount(), 0);
 });

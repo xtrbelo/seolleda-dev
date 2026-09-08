@@ -5,6 +5,7 @@ import {defineSecret} from "firebase-functions/params";
 import {onRequest, Request} from "firebase-functions/v2/https";
 import {firestore} from "../lib/firebaseAdmin.js";
 import {getMpPayment} from "./mercadoPagoClient.js";
+import {reconcileTerminalPayment} from "./reconcilePayment.js";
 import {saleDeadline} from "./pixPolicy.js";
 import type {SaleItemSnapshot} from "../types/sale.js";
 
@@ -109,6 +110,11 @@ export const mercadoPagoWebhook = onRequest(
         return;
       }
 
+      if (await reconcileTerminalPayment(saleId, payment)) {
+        res.status(200).send("OK");
+        return;
+      }
+
       // 4. Iniciar Transação do Firestore
       await firestore.runTransaction(async (transaction) => {
         const saleRef = firestore.collection("sales").doc(saleId);
@@ -169,7 +175,7 @@ export const mercadoPagoWebhook = onRequest(
         }
 
         // Idempotência
-        if (sale.status === "PAID" || sale.paymentReconciliationRequired) {
+        if (["PAID", "CANCELLED", "REFUNDED", "CHARGED_BACK"].includes(sale.status) || sale.paymentReconciliationRequired) {
           console.info(
             "mercadoPagoWebhook: Already paid (idempotency)",
             {saleId, paymentId},

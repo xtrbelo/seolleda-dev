@@ -56,6 +56,12 @@ export const listAdminSales = onCall({region: "southamerica-east1"}, async (requ
       paymentReconciliationRequired: sale.paymentReconciliationRequired === true,
       stockReconciliationRequired: sale.stockReconciliationRequired === true,
       paymentReviewReason: typeof sale.paymentReviewReason === "string" ? sale.paymentReviewReason : undefined,
+      ...(admin ? {
+        mercadoPagoPaymentStatus: sale.mercadoPagoPaymentStatus ?? "",
+        paymentOperationState: sale.paymentOperationState ?? "",
+        paymentOperationAction: sale.paymentOperationAction ?? "",
+        paymentOperationReason: sale.paymentOperationReason ?? "",
+      } : {}),
       items: Array.isArray(sale.items) ? sale.items.map((item) => ({productId: String(item.productId ?? ""), name: String(item.name ?? ""), sku: String(item.sku ?? ""), quantity: Number(item.quantity ?? 0), unitPriceCents: Number(item.unitPriceCents ?? 0), totalCents: Number(item.totalCents ?? 0)})) : [],
     };
   });
