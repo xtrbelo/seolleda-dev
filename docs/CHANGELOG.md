@@ -1,12 +1,12 @@
 # Histórico de versões
 
-## 1G — Reserva transacional de estoque — Em desenvolvimento
+## 1G — Reserva transacional de estoque — Publicada em HML
 
 - Venda pendente reserva unidades dentro da mesma transação que cria a venda, considerando `quantity - reservedQuantity` como saldo disponível.
 - Checkout consulta somente o saldo disponível; movimentações administrativas não podem consumir unidades já reservadas.
 - Pagamento aprovado consome a reserva e a unidade física na transação do webhook.
 - Function agendada `releaseExpiredReservations` libera reservas de vendas vencidas a cada cinco minutos e marca a venda como expirada.
-- Frontend/backend compilados, lint do backend aprovado e 23 testes aprovados, incluindo bloqueio de movimentação sobre unidades reservadas. Testes de concorrência real, expiração no ambiente e homologação permanecem pendentes. Nenhuma publicação da 1G realizada.
+- Frontend/backend compilados, lint do backend aprovado e 23 testes aprovados, incluindo bloqueio de movimentação sobre unidades reservadas. Commit `a89a43e` enviado para `main`. Functions e Hosting publicados em `seolleda-dev` com `Deploy complete` em 07/09/2026; o deploy criou o job do Cloud Scheduler para a limpeza periódica. Testes de concorrência real, expiração no ambiente e homologação funcional permanecem pendentes.
 
 ## 1F — Segurança administrativa por papéis — Publicada em HML
 
