@@ -16,6 +16,7 @@ import CheckoutPage from "./pages/CheckoutPage";
 import CategoriesPage from "./pages/CategoriesPage";
 import ProductsPage from "./pages/ProductsPage";
 import { APP_VERSION, APP_VERSION_LABEL } from "./lib/appVersion";
+import AuditPage from "./pages/AuditPage";
 
 function App() {
   return (
@@ -38,6 +39,7 @@ function App() {
               <Route path="vendas" element={<ProtectedRoute roles={["sales"]} />}><Route index element={<SalesPage />} /></Route>
               <Route path="relatorios" element={<ProtectedRoute roles={["reports"]} />}><Route index element={<ReportsPage />} /></Route>
               <Route path="configuracoes" element={<ProtectedRoute roles={["settings"]} />}><Route index element={<SettingsPage />} /></Route>
+              <Route path="auditoria" element={<ProtectedRoute roles={["settings"]} />}><Route index element={<AuditPage />} /></Route>
             </Route>
           </Route>
           <Route path="*" element={<Navigate to="/checkout" replace />} />

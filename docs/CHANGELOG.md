@@ -1,5 +1,12 @@
 # Histórico de versões
 
+## 1J — Auditoria operacional — Publicada em HML
+
+- Nova consulta administrativa somente leitura para alterações de lojas e terminais.
+- O histórico identifica data, usuário, alvo e campos alterados sem permitir edição ou exclusão.
+- O pagamento por cartão permanece adiado para uma etapa posterior.
+- Frontend e backend compilados, lint aprovado e `listSettingsAudit` mais Hosting publicados em `seolleda-dev` com `Deploy complete`. Usuário confirmou a homologação funcional da 1J.
+
 ## 1I — Operação de pagamentos em revisão — Homologada e publicada em HML
 
 - A tela de Vendas passa a apresentar uma fila de triagem com totais de pagamentos pendentes, revisões de pagamento e revisões de estoque no período carregado.

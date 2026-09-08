@@ -48,3 +48,4 @@ export {manageInventory} from "./sales/manageInventory.js";
 export {manageSettings} from "./sales/manageSettings.js";
 export {releaseExpiredReservations} from "./sales/releaseExpiredReservations.js";
 export {listAdminSales} from "./sales/listAdminSales.js";
+export {listSettingsAudit} from "./sales/listSettingsAudit.js";
