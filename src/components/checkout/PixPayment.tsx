@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPixPayment } from "../../services/paymentService";
 import type { CreatePixPaymentResponse } from "../../services/paymentService";
 import { getSalePaymentStatus } from "../../services/saleService";
+import { paymentPollingDelay } from "../../lib/paymentPolling";
 
 // ---------------------------------------------------------------------------
 // Tipos
@@ -84,7 +85,8 @@ function PixPayment({
 
     let stopped = false;
     let checking = false;
-    let nextCheck: ReturnType<typeof setTimeout> | null = null;
+    let nextCheck: number | null = null;
+    const pollingStartedAt = Date.now();
 
     const checkStatus = async () => {
       if (stopped || checking) return;
@@ -115,13 +117,19 @@ function PixPayment({
       } finally {
         checking = false;
       }
-      if (!stopped) nextCheck = setTimeout(checkStatus, 2000);
+      if (!stopped) {
+        const delay = paymentPollingDelay(
+          Date.now() - pollingStartedAt,
+          document.visibilityState === "hidden",
+        );
+        nextCheck = window.setTimeout(checkStatus, delay);
+      }
     };
 
     void checkStatus();
     return () => {
       stopped = true;
-      if (nextCheck) clearTimeout(nextCheck);
+      if (nextCheck !== null) window.clearTimeout(nextCheck);
     };
   }, [onPaymentApproved, pixData, saleId, statusToken, step]);
 

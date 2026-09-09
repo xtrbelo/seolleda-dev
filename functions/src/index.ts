@@ -8,13 +8,7 @@
  * See a full list of supported triggers at https://firebase.google.com/docs/functions
  */
 
-import {setGlobalOptions} from "firebase-functions";
-import {getCheckoutProduct} from "./checkout/getCheckoutProduct.js";
-import {createPixPayment} from "./payments/createPixPayment.js";
-import {createCardPayment} from "./payments/createCardPayment.js";
-import {getSalePaymentStatus} from "./payments/getSalePaymentStatus.js";
-import {mercadoPagoWebhook} from "./payments/mercadoPagoWebhook.js";
-import {createSale} from "./sales/createSale.js";
+import {setGlobalOptions} from "firebase-functions/v2";
 // import {onRequest} from "firebase-functions/https";
 // import * as logger from "firebase-functions/logger";
 
@@ -31,21 +25,25 @@ import {createSale} from "./sales/createSale.js";
 // functions should each use functions.runWith({ maxInstances: 10 }) instead.
 // In the v1 API, each function can only serve one request per container, so
 // this will be the maximum concurrent request count.
-setGlobalOptions({maxInstances: 10});
-
-export {
-  createSale,
-  getCheckoutProduct,
-  createPixPayment,
-  createCardPayment,
-  getSalePaymentStatus,
-  mercadoPagoWebhook,
-};
+setGlobalOptions({
+  memory: "256MiB",
+  cpu: "gcf_gen1",
+  concurrency: 1,
+  minInstances: 0,
+  maxInstances: 3,
+  enforceAppCheck: true,
+});
 
 // export const helloWorld = onRequest((request, response) => {
 //   logger.info("Hello logs!", {structuredData: true});
 //   response.send("Hello from Firebase!");
 // });
+export {createSale} from "./sales/createSale.js";
+export {getCheckoutProduct} from "./checkout/getCheckoutProduct.js";
+export {createPixPayment} from "./payments/createPixPayment.js";
+export {createCardPayment} from "./payments/createCardPayment.js";
+export {getSalePaymentStatus} from "./payments/getSalePaymentStatus.js";
+export {mercadoPagoWebhook} from "./payments/mercadoPagoWebhook.js";
 export {manageInventory} from "./sales/manageInventory.js";
 export {manageSettings} from "./sales/manageSettings.js";
 export {releaseExpiredReservations} from "./sales/releaseExpiredReservations.js";

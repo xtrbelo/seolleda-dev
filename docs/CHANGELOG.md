@@ -1,5 +1,16 @@
 # Histórico de versões
 
+## 1S.1 — Contenção de custos Firebase — Homologada e publicada em HML
+
+- Todas as 16 Functions passam a aplicar as opções globais antes de carregar qualquer gatilho: 256 MiB, CPU fracionária `gcf_gen1`, nenhuma instância mínima, concorrência unitária e no máximo três instâncias por Function.
+- A consulta do estado do pagamento usa intervalos progressivos de 3, 10 e 30 segundos; abas ocultas consultam no máximo a cada 30 segundos. Uma venda aberta por 15 minutos cai de aproximadamente 450 para cerca de 64 consultas.
+- Relatórios administrativos passam a processar no máximo mil vendas por chamada, reduzindo o risco de milhares de leituras repetidas em consultas amplas.
+- O frontend fica preparado para Firebase App Check com reCAPTCHA Enterprise por meio de `VITE_FIREBASE_APPCHECK_SITE_KEY`, e todas as Functions callable passam a exigir o token válido. Em 08/09/2026, o usuário confirmou a configuração no projeto HML e a chave pública foi verificada como presente e não vazia no `.env.local`, sem exposição do valor.
+- Auditoria remota encontrou uma tarefa agendada e 328,6 MB no Artifact Registry com limpeza após um dia. Após autorização explícita do usuário, sete versões antigas de segredos foram destruídas permanentemente; a conferência final deixou ativas somente `MERCADO_PAGO_ACCESS_TOKEN` versão 7 e `MP_WEBHOOK_SECRET` versão 2.
+- Um teste de regressão garante que os controles globais sejam registrados antes das 16 Functions. Validação enviada pelo usuário: builds frontend/backend e lint backend aprovados; lint frontend sem erros e com os sete avisos conhecidos; 59 testes de negócio e seis testes de regras aprovados. O diff-check apresentou somente avisos de conversão LF/CRLF.
+- Publicação confirmada em `seolleda-dev` (HML): as 16 Functions foram atualizadas em `southamerica-east1` e o Hosting foi publicado. A saída enviada confirmou sucesso individual em todos os alvos e `Deploy complete`.
+- Após a publicação, o usuário confirmou a versão visível **1S.1 — HML** e homologou funcionalmente o hotfix.
+
 ## 1S — Conciliação de reservas de estoque — Homologada e publicada em HML
 
 - Vendas encerradas com `RELEASE_REVIEW_REQUIRED` passam a oferecer uma análise administrativa das reservas por produto.
@@ -11,6 +22,7 @@
 - Implementação e validação local concluídas. Em 08/09/2026, lint e build das Functions passaram sem erros, os 58 testes de negócio e os seis testes de regras foram aprovados. O frontend também passou em lint e build, com os sete avisos conhecidos e o aviso de tamanho do pacote. O diff-check passou somente com avisos de conversão LF/CRLF; as mensagens `PERMISSION_DENIED` do emulador correspondem aos bloqueios esperados.
 - Publicação confirmada em `seolleda-dev` (HML): `reconcileSaleReservation` foi criada, `listAdminSales` foi atualizada e o Hosting foi publicado. A saída enviada confirmou sucesso individual nos três alvos.
 - Após a publicação, o usuário confirmou a homologação funcional da 1S em HML.
+- Fechamento concluído: commit `c44f283` enviado à `main` e tag `release-1s` criada para a versão.
 
 ## 1R — Devoluções e resolução de pendências de estoque — Homologada e publicada em HML
 
@@ -202,5 +214,5 @@ Validação anterior do estoque: cinco testes simulados de estoque e 17 testes P
 
 ## Próximas versões
 
-- Fase atual: 1S — conciliação de reservas de estoque, homologada e publicada em HML; commit e tag de fechamento pendentes.
-- Fase anterior: 1R homologada e publicada em HML; commit `ae52943`, tag remota `release-1r` confirmada.
+- Fase atual: hotfix 1S.1 — contenção de custos Firebase, homologado e publicado em HML; commit e tag de fechamento pendentes.
+- Fase anterior: 1S homologada e publicada em HML; commit `c44f283`, tag `release-1s` confirmada.

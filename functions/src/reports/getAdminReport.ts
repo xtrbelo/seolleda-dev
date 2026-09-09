@@ -5,7 +5,7 @@ import {firestore} from "../lib/firebaseAdmin.js";
 import {claimStoreIds, hasRole, requireAnyRole} from "../auth/roles.js";
 
 const MAX_RANGE_MS = 94 * 86400000;
-const MAX_SALES = 5000;
+const MAX_SALES = 1000;
 const LOCAL_DATE = new Intl.DateTimeFormat("en-CA", {timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit"});
 
 /** Validate a positive millisecond timestamp.

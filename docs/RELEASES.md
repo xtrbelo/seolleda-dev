@@ -28,7 +28,8 @@ A fonte única da versão exibida é src/lib/appVersion.ts. A versão técnica 0
 | 1P | Confiabilidade de reservas e paginação | Homologada e publicada em HML; Functions, índice do Firestore e Hosting confirmados |
 | 1Q | Operações de pagamentos em revisão, cancelamento e reembolso | Homologada e publicada em HML; Functions e Hosting confirmados |
 | 1R | Devoluções e resolução de pendências de estoque | Homologada e publicada em HML; Functions e Hosting confirmados |
-| 1S | Conciliação de reservas de estoque inconsistentes | Homologada e publicada em HML; commit e tag de fechamento pendentes |
+| 1S | Conciliação de reservas de estoque inconsistentes | Homologada e publicada em HML; commit `c44f283` e tag `release-1s` confirmados |
+| 1S.1 | Contenção de custos Firebase | Homologada e publicada em HML; commit e tag de fechamento pendentes |
 
 Não tratar fases planejadas como implementadas. A identificação 1A foi adotada e publicada em 07/09/2026. Histórico em docs/CHANGELOG.md.
 

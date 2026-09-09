@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createCardPayment } from "../../services/paymentService";
 import { getSalePaymentStatus } from "../../services/saleService";
+import { paymentPollingDelay } from "../../lib/paymentPolling";
 
 type CardPaymentProps = {
   saleId: string;
@@ -118,6 +119,8 @@ function CardPayment({
     if (!submitted) return;
     let stopped = false;
     let checking = false;
+    let nextCheck: number | null = null;
+    const pollingStartedAt = Date.now();
     const checkStatus = async () => {
       if (stopped || checking) return;
       checking = true;
@@ -144,10 +147,19 @@ function CardPayment({
       } finally {
         checking = false;
       }
-      if (!stopped) window.setTimeout(checkStatus, 2000);
+      if (!stopped) {
+        const delay = paymentPollingDelay(
+          Date.now() - pollingStartedAt,
+          document.visibilityState === "hidden",
+        );
+        nextCheck = window.setTimeout(checkStatus, delay);
+      }
     };
     void checkStatus();
-    return () => { stopped = true; };
+    return () => {
+      stopped = true;
+      if (nextCheck !== null) window.clearTimeout(nextCheck);
+    };
   }, [onPaymentApproved, saleId, statusToken, submitted]);
 
   return (
