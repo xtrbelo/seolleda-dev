@@ -10,6 +10,7 @@
 - Um teste de regressão garante que os controles globais sejam registrados antes das 16 Functions. Validação enviada pelo usuário: builds frontend/backend e lint backend aprovados; lint frontend sem erros e com os sete avisos conhecidos; 59 testes de negócio e seis testes de regras aprovados. O diff-check apresentou somente avisos de conversão LF/CRLF.
 - Publicação confirmada em `seolleda-dev` (HML): as 16 Functions foram atualizadas em `southamerica-east1` e o Hosting foi publicado. A saída enviada confirmou sucesso individual em todos os alvos e `Deploy complete`.
 - Após a publicação, o usuário confirmou a versão visível **1S.1 — HML** e homologou funcionalmente o hotfix.
+- Fechamento concluído: commit `d7ee849` enviado à `main` e tag `release-1s.1` publicada no repositório remoto.
 
 ## 1S — Conciliação de reservas de estoque — Homologada e publicada em HML
 
@@ -214,5 +215,6 @@ Validação anterior do estoque: cinco testes simulados de estoque e 17 testes P
 
 ## Próximas versões
 
-- Fase atual: hotfix 1S.1 — contenção de custos Firebase, homologado e publicado em HML; commit e tag de fechamento pendentes.
+- Última versão: hotfix 1S.1 — contenção de custos Firebase, homologado e publicado em HML; commit `d7ee849` e tag `release-1s.1` confirmados.
+- Próxima fase: ainda não definida.
 - Fase anterior: 1S homologada e publicada em HML; commit `c44f283`, tag `release-1s` confirmada.
