@@ -1,5 +1,17 @@
 # Histórico de versões
 
+## 1S — Conciliação de reservas de estoque — Homologada e publicada em HML
+
+- Vendas encerradas com `RELEASE_REVIEW_REQUIRED` passam a oferecer uma análise administrativa das reservas por produto.
+- O backend recalcula o saldo esperado com todas as vendas ainda reservadas da mesma loja e mostra o valor atual, o valor esperado e a correção antes da confirmação.
+- A confirmação fica vinculada aos valores exibidos; se as reservas mudarem depois da análise, uma nova análise é exigida.
+- A aplicação exige administrador, justificativa e confirmação; atualiza todos os produtos e encerra a pendência na mesma transação, com registro imutável por venda.
+- Limites e validações interrompem a conciliação quando houver venda ativa inconsistente, mais de 500 vendas reservadas ou saldo físico incompatível. Nenhuma correção parcial é aplicada.
+- Correção manual de itens inválidos e tratamento em lote de várias pendências ficam fora desta fase.
+- Implementação e validação local concluídas. Em 08/09/2026, lint e build das Functions passaram sem erros, os 58 testes de negócio e os seis testes de regras foram aprovados. O frontend também passou em lint e build, com os sete avisos conhecidos e o aviso de tamanho do pacote. O diff-check passou somente com avisos de conversão LF/CRLF; as mensagens `PERMISSION_DENIED` do emulador correspondem aos bloqueios esperados.
+- Publicação confirmada em `seolleda-dev` (HML): `reconcileSaleReservation` foi criada, `listAdminSales` foi atualizada e o Hosting foi publicado. A saída enviada confirmou sucesso individual nos três alvos.
+- Após a publicação, o usuário confirmou a homologação funcional da 1S em HML.
+
 ## 1R — Devoluções e resolução de pendências de estoque — Homologada e publicada em HML
 
 - Conferência administrativa de vendas estornadas ou contestadas com reserva já consumida: devolução integral com reposição ou encerramento sem reposição, mediante justificativa e confirmação física.
@@ -11,6 +23,7 @@
 - Diff enviado pelo usuário e três arquivos novos revisados (`resolveSaleStock.ts`, `returns.test.cjs` e `SaleStockResolution.tsx`). Seleção da fase contém 12 arquivos; cache gerado do Hosting fica fora do commit.
 - Usuário autorizou e executou a publicação em `seolleda-dev` (HML) em 08/09/2026: `resolveSaleStock` criada e `listAdminSales` atualizada em `southamerica-east1`; Hosting publicado. Saída enviada confirmou sucesso nos três alvos e `Deploy complete`.
 - Após a publicação, o usuário confirmou os testes funcionais e a homologação da 1R. Commit e tag de fechamento ainda pendentes.
+- Fechamento concluído: commit `ae52943` enviado à `main` e tag `release-1r` enviada ao repositório remoto.
 
 ## 1Q — Operações de pagamentos em revisão, cancelamento e reembolso — Homologada e publicada em HML
 
@@ -189,5 +202,5 @@ Validação anterior do estoque: cinco testes simulados de estoque e 17 testes P
 
 ## Próximas versões
 
-- Fase atual: 1R — devoluções e resolução de pendências de estoque, homologada e publicada em HML.
-- Fase anterior: 1Q homologada e publicada em HML; commit `9d22d17`, tag remota `release-1q` confirmada.
+- Fase atual: 1S — conciliação de reservas de estoque, homologada e publicada em HML; commit e tag de fechamento pendentes.
+- Fase anterior: 1R homologada e publicada em HML; commit `ae52943`, tag remota `release-1r` confirmada.

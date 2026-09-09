@@ -72,3 +72,12 @@ test("stock resolutions and return movements cannot be forged or deleted from cl
   await assertFails(deleteDoc(doc(admin, "saleStockResolutions/sale-a")));
   await assertFails(setDoc(doc(admin, "stockMovements/return_sale-a_product"), {storeId: "store-a", type: "REFUND", quantity: 2}));
 });
+
+test("reservation reconciliations remain server-only", async () => {
+  const admin = db("admin-user", {admin: true});
+  await seed("reservationReconciliations/sale-a", {storeId: "store-a", reason: "Conferência"});
+  await assertFails(getDoc(doc(admin, "reservationReconciliations/sale-a")));
+  await assertFails(setDoc(doc(admin, "reservationReconciliations/sale-b"), {storeId: "store-a"}));
+  await assertFails(setDoc(doc(admin, "reservationReconciliations/sale-a"), {reason: "Alterado"}));
+  await assertFails(deleteDoc(doc(admin, "reservationReconciliations/sale-a")));
+});

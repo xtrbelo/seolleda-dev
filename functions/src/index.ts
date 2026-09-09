@@ -55,3 +55,4 @@ export {manageProducts} from "./catalog/manageProducts.js";
 export {getAdminReport} from "./reports/getAdminReport.js";
 export {managePayment} from "./payments/managePayment.js";
 export {resolveSaleStock} from "./sales/resolveSaleStock.js";
+export {reconcileSaleReservation} from "./sales/reconcileSaleReservation.js";

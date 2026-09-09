@@ -5,6 +5,7 @@ import {app} from "../lib/firebase";
 export type AdminSale = {
   reservationStatus?: string;
   stockResolution?: StockResolution;
+  reservationReconciliation?: ReservationReconciliation;
   id: string; status: string; paymentStatus?: string; paymentMethod?: string;
   mercadoPagoPaymentId?: string; storeId: string; terminalId: string; totalCents: number;
   createdAt?: Timestamp; paidAt?: Timestamp; expiresAt?: Timestamp;
@@ -22,6 +23,29 @@ export type StockResolution = {
   userId: string;
   resolvedAtMs: number;
 };
+export type ReservationDifference = {
+  productId: string;
+  name: string;
+  currentReserved: number;
+  expectedReserved: number;
+  adjustment: number;
+};
+export type ReservationReconciliation = {
+  reason: string;
+  userId: string;
+  resolvedAtMs: number;
+  items: ReservationDifference[];
+};
+export type ReservationReconciliationResult = {
+  resolved: boolean;
+  items: ReservationDifference[];
+  previewToken?: string;
+  resolution?: ReservationReconciliation;
+};
+export async function reconcileSaleReservation(saleId: string, action: "PREVIEW" | "APPLY", reason = "", confirmed = false, previewToken = "") {
+  const operation = httpsCallable<{saleId: string; action: string; reason: string; confirmed: boolean; previewToken: string}, ReservationReconciliationResult>(getFunctions(app, "southamerica-east1"), "reconcileSaleReservation");
+  return (await operation({saleId, action, reason, confirmed, previewToken})).data;
+}
 export async function resolveSaleStock(saleId: string, action: StockResolution["action"], reason: string, physicallyChecked: boolean) {
   const operation = httpsCallable<{saleId: string; action: string; reason: string; physicallyChecked: boolean}, {resolution: StockResolution}>(getFunctions(app, "southamerica-east1"), "resolveSaleStock");
   return (await operation({saleId, action, reason, physicallyChecked})).data.resolution;

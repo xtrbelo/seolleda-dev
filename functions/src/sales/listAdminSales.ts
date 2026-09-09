@@ -64,6 +64,23 @@ export const listAdminSales = onCall({region: "southamerica-east1"}, async (requ
           userId: String(sale.stockResolution.userId ?? ""),
           resolvedAtMs: Number(sale.stockResolution.resolvedAtMs ?? 0),
         }} : {}),
+        ...(sale.reservationReconciliation ? {reservationReconciliation: {
+          reason: String(sale.reservationReconciliation.reason ?? ""),
+          userId: String(sale.reservationReconciliation.userId ?? ""),
+          resolvedAtMs: Number(sale.reservationReconciliation.resolvedAtMs ?? 0),
+          items: Array.isArray(sale.reservationReconciliation.items) ?
+            sale.reservationReconciliation.items.map((item: unknown) => {
+              const value = item && typeof item === "object" ?
+                item as Record<string, unknown> : {};
+              return {
+                productId: String(value.productId ?? ""),
+                name: String(value.name ?? ""),
+                currentReserved: Number(value.currentReserved ?? 0),
+                expectedReserved: Number(value.expectedReserved ?? 0),
+                adjustment: Number(value.adjustment ?? 0),
+              };
+            }) : [],
+        }} : {}),
         mercadoPagoPaymentStatus: sale.mercadoPagoPaymentStatus ?? "",
         paymentOperationState: sale.paymentOperationState ?? "",
         paymentOperationAction: sale.paymentOperationAction ?? "",
