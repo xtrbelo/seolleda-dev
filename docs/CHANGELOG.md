@@ -8,7 +8,8 @@
 - O hotfix não altera regras, Functions, dados, permissões ou fluxos funcionais; seu objetivo é zerar os sete avisos conhecidos do lint do frontend.
 - Validação enviada pelo usuário em 10/09/2026: lint do frontend aprovado com zero erros e zero avisos, e build concluído com sucesso. Permanece somente a recomendação de desempenho do Vite para o pacote principal acima de 500 kB, fora do escopo deste hotfix.
 - Publicação confirmada em `seolleda-dev` (HML): somente o Hosting foi publicado, com `release complete` e `Deploy complete` na saída enviada pelo usuário.
-- Após a publicação, o usuário confirmou a homologação funcional da 1V.1 em HML em 10/09/2026. Commit e tag de fechamento permanecem pendentes.
+- Após a publicação, o usuário confirmou a homologação funcional da 1V.1 em HML em 10/09/2026.
+- Fechamento concluído: commit `1a2db9d` enviado à `main` e tag `release-1v.1` publicada no repositório remoto.
 
 ## 1V — Gestão administrativa de usuários e permissões — Homologada e publicada em HML
 
@@ -264,6 +265,6 @@ Validação anterior do estoque: cinco testes simulados de estoque e 17 testes P
 
 ## Próximas versões
 
-- Hotfix atual: 1V.1 — saneamento técnico dos avisos do frontend, homologado e publicado em HML; fechamento do repositório pendente.
+- Último hotfix: 1V.1 — saneamento técnico dos avisos do frontend, homologado e publicado em HML; commit `1a2db9d` e tag `release-1v.1` confirmados.
 - Última versão funcional: 1V — gestão administrativa de usuários e permissões, homologada e publicada em HML; commit `e23ea16` e tag `release-1v` confirmados.
 - Versão anterior: 1U — fechamento financeiro e exportação de relatórios, homologada e publicada em HML; commit `e19c243` e tag `release-1u` confirmados.
