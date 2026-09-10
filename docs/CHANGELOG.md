@@ -17,6 +17,7 @@
 - Publicação confirmada em `seolleda-dev` (HML): regras do Firestore, Hosting e dez Functions dependentes da hierarquia de papéis foram atualizados com sucesso (`manageAdminUsers`, `manageSettings`, `listSettingsAudit`, `manageProducts`, `manageInventory`, `listAdminSales`, `getAdminReport`, `managePayment`, `resolveSaleStock` e `reconcileSaleReservation`). Após a revisão final, o Hosting foi republicado isoladamente com o ajuste de navegação do administrador. As duas saídas confirmaram `Deploy complete`.
 - A conta `jpbelooo@gmail.com` foi promovida para `roles: ["master"]` no Firebase Authentication de HML, com remoção das claims administrativas legadas, das lojas atribuídas e revogação dos tokens de renovação.
 - Após a publicação e a renovação da sessão, o usuário confirmou a homologação funcional da 1W em HML em 10/09/2026.
+- Fechamento concluído: commit `db1a21c` enviado à `main` e tag anotada `release-1w` publicada no repositório remoto.
 
 ## 1V.1 — Saneamento técnico dos avisos do frontend — Homologada e publicada em HML
 
@@ -283,7 +284,6 @@ Validação anterior do estoque: cinco testes simulados de estoque e 17 testes P
 
 ## Próximas versões
 
-- Fase atual: 1W — expansão administrativa para múltiplas lojas, homologada e publicada em HML.
 - Última versão funcional: 1W — múltiplas lojas, revisão visual e separação entre administrador master e administrador.
 - Último hotfix: 1V.1 — saneamento técnico dos avisos do frontend, homologado e publicado em HML; commit `1a2db9d` e tag `release-1v.1` confirmados.
 - Versão anterior: 1V — gestão administrativa de usuários e permissões, homologada e publicada em HML; commit `e23ea16` e tag `release-1v` confirmados.
