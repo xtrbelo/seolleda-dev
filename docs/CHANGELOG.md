@@ -11,7 +11,8 @@
 - Contas e permissões continuarão centralizadas no Firebase Authentication e em custom claims, sem duplicação no Firestore.
 - Validação local enviada pelo usuário em 10/09/2026: builds de frontend e backend aprovados, lints sem erros, seis testes de regras e 76 testes de negócio aprovados. O `diff-check` não encontrou erros e mostrou somente avisos de conversão LF/CRLF. Permanecem os sete avisos conhecidos do frontend, reservados para saneamento técnico posterior.
 - Publicação confirmada em `seolleda-dev` (HML): a Function `manageAdminUsers` foi criada em `southamerica-east1` e o Hosting foi publicado. A saída enviada confirmou sucesso nos dois alvos e `Deploy complete`.
-- Após a publicação, o usuário executou o roteiro funcional e confirmou a homologação da 1V em HML em 10/09/2026. Commit e tag de fechamento permanecem pendentes.
+- Após a publicação, o usuário executou o roteiro funcional e confirmou a homologação da 1V em HML em 10/09/2026.
+- Fechamento concluído: commit `e23ea16` enviado à `main` e tag `release-1v` publicada no repositório remoto.
 
 ## 1U — Fechamento financeiro e exportação de relatórios — Homologada e publicada em HML
 
@@ -253,6 +254,6 @@ Validação anterior do estoque: cinco testes simulados de estoque e 17 testes P
 
 ## Próximas versões
 
-- Última versão funcional: 1V — gestão administrativa de usuários e permissões, homologada e publicada em HML; fechamento do repositório pendente.
+- Última versão funcional: 1V — gestão administrativa de usuários e permissões, homologada e publicada em HML; commit `e23ea16` e tag `release-1v` confirmados.
 - Próxima manutenção: sanear os sete avisos conhecidos do frontend após o fechamento da 1V, sem misturar as alterações ao commit da fase.
 - Versão anterior: 1U — fechamento financeiro e exportação de relatórios, homologada e publicada em HML; commit `e19c243` e tag `release-1u` confirmados.
