@@ -28,7 +28,7 @@ function fixture() {
         const tx = {
           getAll: async (...refs) => {
             assert.equal(writes.length, 0, "all reads must precede writes");
-            return refs.map((ref) => ({exists: docs.has(ref.path), data: () => docs.get(ref.path)}));
+            return refs.map((ref) => ({exists: docs.has(ref.path), data: () => docs.get(ref.path), get: (key) => docs.get(ref.path)?.[key]}));
           },
           set: (ref, data) => writes.push({ref, data, merge: false}),
           update: (ref, data) => {
@@ -45,12 +45,23 @@ function fixture() {
       return result;
     },
   };
+  const partialRefundExports = {};
+  vm.runInNewContext(readFileSync(require.resolve("../lib/payments/partialRefund.js"), "utf8"), {
+    exports: partialRefundExports,
+    require: (name) => {
+      if (name === "../lib/firebaseAdmin.js") return {firestore};
+      if (name === "./reconcilePayment.js") return {verifyPayment: () => {}};
+      if (name === "firebase-admin/firestore") return {Timestamp, FieldValue};
+      throw new Error(`Unexpected partial refund import ${name}`);
+    },
+  });
   const exports = {};
   vm.runInNewContext(readFileSync(require.resolve("../lib/sales/resolveSaleStock.js"), "utf8"), {
     exports,
     require: (name) => {
       if (name === "../lib/firebaseAdmin.js") return {firestore};
       if (name === "../auth/roles.js") return roles;
+      if (name === "../payments/partialRefund.js") return partialRefundExports;
       if (name === "firebase-admin/firestore") return {Timestamp, FieldValue};
       if (name === "firebase-functions/v2/https") return {HttpsError, onCall: (_, fn) => fn};
       throw new Error(`Unexpected import ${name}`);
@@ -62,6 +73,29 @@ function fixture() {
       auth, data: {saleId: "sale1", action: "RETURN_ALL", reason: "Produtos recebidos e conferidos", physicallyChecked: true, ...data},
     }),
     failNextCommit: () => { failCommit = true; },
+  };
+}
+
+const partialId = "11111111-1111-4111-8111-111111111111";
+
+function partialFixture() {
+  const f = fixture();
+  const refund = {
+    id: partialId, amountCents: 1000, expectedRefundedCents: 1000,
+    items: [{productId: "p1", quantity: 1, name: "Produto 1", sku: "sku1", barcode: "1", unitPriceCents: 500, totalCents: 500},
+      {productId: "p2", quantity: 1, name: "Produto 2", sku: "sku2", barcode: "2", unitPriceCents: 500, totalCents: 500}],
+    reason: "Solicitação parcial do cliente", userId: "admin1", requestedAtMs: Date.now() - 1000,
+    confirmedAtMs: Date.now(), state: "CONFIRMED", stockState: "PENDING",
+  };
+  Object.assign(f.sale(), {status: "PAID", partialRefundedCents: 1000, partialRefunds: [refund],
+    partialReturnPendingCount: 1, partialStockReviewBase: false});
+  f.docs.set(`paymentOperations/partial_${partialId}`, {saleId: "sale1", state: "CONFIRMED", amountCents: 1000});
+  return {
+    ...f,
+    resolvePartial: (returnItems = [{productId: "p1", quantity: 1}], extra = {}) => f.call({
+      action: "RESOLVE_PARTIAL", refundId: partialId, returnItems,
+      reason: "Itens parciais conferidos", physicallyChecked: true, ...extra,
+    }),
   };
 }
 
@@ -177,4 +211,54 @@ test("no-return cannot hide a stock deficit", async () => {
   f.docs.get("inventory/s_p1").quantity = -1;
   await assert.rejects(f.call({action: "NO_RETURN"}), {code: "failed-precondition"});
   assert.equal(f.sale().stockReconciliationRequired, true);
+});
+
+test("partial return restores only physically received quantities", async () => {
+  const f = partialFixture();
+  const result = await f.resolvePartial([{productId: "p1", quantity: 1}]);
+  assert.equal(result.resolution.action, "RESOLVE_PARTIAL");
+  assert.equal(f.docs.get("inventory/s_p1").quantity, 6);
+  assert.equal(f.docs.get("inventory/s_p2").quantity, 5);
+  assert.equal(f.docs.get(`stockMovements/partial_return_sale1_${partialId}_p1`).quantity, 1);
+  assert.equal(f.docs.has(`stockMovements/partial_return_sale1_${partialId}_p2`), false);
+  assert.equal(f.docs.get(`paymentOperations/partial_${partialId}`).stockState, "RESOLVED");
+  assert.equal(f.sale().partialRefunds[0].stockState, "RESOLVED");
+  assert.equal(f.sale().partialReturnPendingCount, 0);
+  assert.equal(f.sale().stockReconciliationRequired, false);
+});
+
+test("partial return replay and concurrent calls replenish stock once", async () => {
+  const f = partialFixture();
+  const calls = await Promise.all([f.resolvePartial(), f.resolvePartial(), f.resolvePartial()]);
+  assert.equal(f.docs.get("inventory/s_p1").quantity, 6);
+  assert.equal(calls[0].resolution.resolvedAtMs, calls[2].resolution.resolvedAtMs);
+  await assert.rejects(f.resolvePartial([], {reason: "Outra decisão física"}), {code: "already-exists"});
+});
+
+test("partial resolution can close without replenishment and preserves an older review", async () => {
+  const f = partialFixture();
+  f.sale().partialStockReviewBase = true;
+  await f.resolvePartial([]);
+  assert.equal(f.docs.get("inventory/s_p1").quantity, 5);
+  assert.equal(f.docs.has(`stockMovements/partial_return_sale1_${partialId}_p1`), false);
+  assert.equal(f.sale().stockReconciliationRequired, true);
+  assert.equal(JSON.stringify(f.sale().partialRefunds[0].returnedItems), "[]");
+});
+
+test("partial resolution rejects excess quantities and unconfirmed operations", async () => {
+  const f = partialFixture();
+  await assert.rejects(f.resolvePartial([{productId: "p1", quantity: 2}]), {code: "failed-precondition"});
+  assert.equal(f.docs.get("inventory/s_p1").quantity, 5);
+  f.sale().partialRefunds[0].state = "REQUESTED";
+  f.sale().partialRefunds[0].stockState = "WAITING_PAYMENT";
+  await assert.rejects(f.resolvePartial(), {code: "failed-precondition"});
+  assert.equal(f.docs.get("inventory/s_p1").quantity, 5);
+});
+
+test("partial resolution requires administrator and physical confirmation", async () => {
+  const f = partialFixture();
+  await assert.rejects(f.call({action: "RESOLVE_PARTIAL", refundId: partialId, returnItems: [], physicallyChecked: false}), {code: "invalid-argument"});
+  await assert.rejects(f.call({action: "RESOLVE_PARTIAL", refundId: partialId, returnItems: []},
+    {uid: "stock1", token: {roles: ["inventory"], storeIds: ["s"]}}), {code: "permission-denied"});
+  assert.equal(f.docs.get("inventory/s_p1").quantity, 5);
 });

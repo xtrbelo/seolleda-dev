@@ -61,12 +61,14 @@ export const getAdminReport = onCall({region: "southamerica-east1"}, async (requ
   let revenue = 0;
   let units = 0;
   for (const sale of paid) {
-    revenue += Number(sale.totalCents ?? 0);
+    const refundedCents = Number(sale.partialRefundedCents ?? 0);
+    const netTotal = Math.max(0, Number(sale.totalCents ?? 0) - (Number.isSafeInteger(refundedCents) ? refundedCents : 0));
+    revenue += netTotal;
     if (sale.createdAt instanceof Timestamp) {
       const day = dayKey(sale.createdAt);
       const entry = days.get(day) ?? {day, count: 0, total: 0};
       entry.count++;
-      entry.total += Number(sale.totalCents ?? 0);
+      entry.total += netTotal;
       days.set(day, entry);
     }
     if (Array.isArray(sale.items)) {
@@ -74,10 +76,18 @@ export const getAdminReport = onCall({region: "southamerica-east1"}, async (requ
         const item = rawItem as Record<string, unknown>;
         const id = String(item.productId ?? "");
         const product = products.get(id) ?? {id, name: String(item.name ?? ""), quantity: 0, total: 0};
-        product.quantity += Number(item.quantity ?? 0);
-        product.total += Number(item.totalCents ?? 0);
+        const refundedQuantity = Array.isArray(sale.partialRefunds) ? sale.partialRefunds.reduce((sum: number, rawRefund: unknown) => {
+          const refund = rawRefund && typeof rawRefund === "object" ? rawRefund as Record<string, unknown> : {};
+          if (refund.state !== "CONFIRMED" || !Array.isArray(refund.items)) return sum;
+          const refundedItem = refund.items.find((raw: unknown) => raw && typeof raw === "object" &&
+            String((raw as Record<string, unknown>).productId ?? "") === id) as Record<string, unknown> | undefined;
+          return sum + Number(refundedItem?.quantity ?? 0);
+        }, 0) : 0;
+        const netQuantity = Math.max(0, Number(item.quantity ?? 0) - refundedQuantity);
+        product.quantity += netQuantity;
+        product.total += netQuantity * Number(item.unitPriceCents ?? 0);
         products.set(id, product);
-        units += Number(item.quantity ?? 0);
+        units += netQuantity;
       }
     }
   }

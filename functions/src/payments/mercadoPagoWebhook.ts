@@ -6,6 +6,7 @@ import {onRequest, Request} from "firebase-functions/v2/https";
 import {firestore} from "../lib/firebaseAdmin.js";
 import {getMpPayment} from "./mercadoPagoClient.js";
 import {reconcileTerminalPayment} from "./reconcilePayment.js";
+import {reconcilePartialRefundPayment} from "./partialRefund.js";
 import {saleDeadline} from "./pixPolicy.js";
 import type {SaleItemSnapshot} from "../types/sale.js";
 
@@ -110,7 +111,8 @@ export const mercadoPagoWebhook = onRequest(
         return;
       }
 
-      if (await reconcileTerminalPayment(saleId, payment)) {
+      const partialRefund = await reconcilePartialRefundPayment(saleId, payment);
+      if (partialRefund.handled || await reconcileTerminalPayment(saleId, payment)) {
         res.status(200).send("OK");
         return;
       }

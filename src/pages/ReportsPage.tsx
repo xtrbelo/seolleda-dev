@@ -45,7 +45,7 @@ export default function ReportsPage({ dashboard = false }: { dashboard?: boolean
     {error && <p className="page-error" role="alert">{error}</p>}
     {result && <>
       <p>Consulta: {request.from.split("-").reverse().join("/")} a {request.until.split("-").reverse().join("/")} · Atualizado às {result.updated.toLocaleTimeString("pt-BR")}</p>
-      <Metrics values={[["Receita das vendas pagas", money(result.report.revenue)], ["Vendas pagas", result.report.paid], ["Ticket médio", money(result.report.average)], ["Unidades vendidas", result.report.units], ["Compras criadas", result.report.total], ["Pagamentos pendentes", result.report.pending], ["Prazo encerrado", result.report.expired], ["Revisão de pagamento", result.report.review], ["Vendas com revisão de estoque", result.report.stockReview]]} />
+      <Metrics values={[["Receita líquida após reembolsos", money(result.report.revenue)], ["Vendas pagas", result.report.paid], ["Ticket médio líquido", money(result.report.average)], ["Unidades líquidas vendidas", result.report.units], ["Compras criadas", result.report.total], ["Pagamentos pendentes", result.report.pending], ["Prazo encerrado", result.report.expired], ["Revisão de pagamento", result.report.review], ["Vendas com revisão de estoque", result.report.stockReview]]} />
       {result.report.total === 0 && <p className="table-message">Nenhuma compra criada neste período.</p>}
       {dashboard ? <>
         <h2>Estoque atual</h2><p>Saldo atual de todas as lojas, independente do período. Alertas contam registros de produto por loja já cadastrados no estoque.</p>

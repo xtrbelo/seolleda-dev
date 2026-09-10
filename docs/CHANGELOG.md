@@ -1,5 +1,17 @@
 # Histórico de versões
 
+## 1T — Reembolsos e devoluções parciais — Homologada e publicada em HML
+
+- Administradores podem selecionar itens e quantidades de uma venda paga para solicitar um reembolso parcial; o backend calcula o valor exclusivamente pelos preços originais persistidos.
+- Cada solicitação possui identificação idempotente própria, confirmação pelo valor acumulado informado pelo Mercado Pago e registro do motivo, responsável, itens e valor.
+- A devolução física fica vinculada à operação de reembolso parcial: é possível repor somente os itens recebidos ou encerrar aquela operação sem reposição.
+- Quantidades já reembolsadas ou devolvidas não podem ser processadas novamente. Solicitações simultâneas, respostas perdidas e divergências do provedor não duplicam dinheiro nem estoque.
+- Relatórios descontam valores e unidades dos reembolsos parciais confirmados, exibindo receita, ticket e unidades líquidas.
+- A fase reutiliza `managePayment`, `mercadoPagoWebhook`, `resolveSaleStock`, `listAdminSales` e `getAdminReport`; nenhuma nova Function ou tarefa agendada foi criada.
+- Validação enviada pelo usuário em 09/09/2026: lint e build de frontend e backend aprovados; lint frontend com os sete avisos conhecidos; 70 testes de negócio e seis testes de regras aprovados. O diff-check passou somente com avisos de conversão LF/CRLF; as mensagens `PERMISSION_DENIED` do emulador correspondem aos bloqueios esperados.
+- Publicação confirmada em `seolleda-dev` (HML): cinco Functions foram atualizadas em `southamerica-east1` (`managePayment`, `mercadoPagoWebhook`, `listAdminSales`, `resolveSaleStock` e `getAdminReport`) e o Hosting foi publicado. A saída enviada confirmou sucesso individual em todos os alvos e `Deploy complete`.
+- Após a publicação, o usuário executou o roteiro funcional e confirmou a homologação da 1T em HML. Commit e tag de fechamento ainda pendentes.
+
 ## 1S.1 — Contenção de custos Firebase — Homologada e publicada em HML
 
 - Todas as 16 Functions passam a aplicar as opções globais antes de carregar qualquer gatilho: 256 MiB, CPU fracionária `gcf_gen1`, nenhuma instância mínima, concorrência unitária e no máximo três instâncias por Function.
@@ -215,6 +227,6 @@ Validação anterior do estoque: cinco testes simulados de estoque e 17 testes P
 
 ## Próximas versões
 
+- Fase atual: 1T — reembolsos e devoluções parciais, em desenvolvimento.
 - Última versão: hotfix 1S.1 — contenção de custos Firebase, homologado e publicado em HML; commit `d7ee849` e tag `release-1s.1` confirmados.
-- Próxima fase: ainda não definida.
 - Fase anterior: 1S homologada e publicada em HML; commit `c44f283`, tag `release-1s` confirmada.

@@ -55,6 +55,8 @@ export const listAdminSales = onCall({region: "southamerica-east1"}, async (requ
       expiresAtMs: sale.expiresAt instanceof Timestamp ? sale.expiresAt.toMillis() : undefined,
       paymentReconciliationRequired: sale.paymentReconciliationRequired === true,
       stockReconciliationRequired: sale.stockReconciliationRequired === true,
+      partialRefundedCents: Number(sale.partialRefundedCents ?? 0),
+      partialReturnPendingCount: Number(sale.partialReturnPendingCount ?? 0),
       paymentReviewReason: typeof sale.paymentReviewReason === "string" ? sale.paymentReviewReason : undefined,
       ...(admin ? {
         reservationStatus: typeof sale.reservationStatus === "string" ? sale.reservationStatus : "",
@@ -85,6 +87,27 @@ export const listAdminSales = onCall({region: "southamerica-east1"}, async (requ
         paymentOperationState: sale.paymentOperationState ?? "",
         paymentOperationAction: sale.paymentOperationAction ?? "",
         paymentOperationReason: sale.paymentOperationReason ?? "",
+        partialRefunds: Array.isArray(sale.partialRefunds) ? sale.partialRefunds.slice(0, 20).map((refund: unknown) => {
+          const value = refund && typeof refund === "object" ? refund as Record<string, unknown> : {};
+          return {
+            id: String(value.id ?? ""), amountCents: Number(value.amountCents ?? 0),
+            expectedRefundedCents: Number(value.expectedRefundedCents ?? 0),
+            reason: String(value.reason ?? ""), userId: String(value.userId ?? ""),
+            requestedAtMs: Number(value.requestedAtMs ?? 0), confirmedAtMs: Number(value.confirmedAtMs ?? 0),
+            state: String(value.state ?? ""), stockState: String(value.stockState ?? ""),
+            stockReason: String(value.stockReason ?? ""), stockUserId: String(value.stockUserId ?? ""),
+            stockResolvedAtMs: Number(value.stockResolvedAtMs ?? 0),
+            items: Array.isArray(value.items) ? value.items.map((item: unknown) => {
+              const data = item && typeof item === "object" ? item as Record<string, unknown> : {};
+              return {productId: String(data.productId ?? ""), name: String(data.name ?? ""), sku: String(data.sku ?? ""),
+                quantity: Number(data.quantity ?? 0), unitPriceCents: Number(data.unitPriceCents ?? 0), totalCents: Number(data.totalCents ?? 0)};
+            }) : [],
+            returnedItems: Array.isArray(value.returnedItems) ? value.returnedItems.map((item: unknown) => {
+              const data = item && typeof item === "object" ? item as Record<string, unknown> : {};
+              return {productId: String(data.productId ?? ""), quantity: Number(data.quantity ?? 0)};
+            }) : [],
+          };
+        }) : [],
       } : {}),
       items: Array.isArray(sale.items) ? sale.items.map((item) => ({productId: String(item.productId ?? ""), name: String(item.name ?? ""), sku: String(item.sku ?? ""), quantity: Number(item.quantity ?? 0), unitPriceCents: Number(item.unitPriceCents ?? 0), totalCents: Number(item.totalCents ?? 0)})) : [],
     };

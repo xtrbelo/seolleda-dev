@@ -7,9 +7,11 @@ const MP_PAYMENTS_URL = "https://api.mercadopago.com/v1/payments";
  * @param {string} action Operation.
  * @param {string} accessToken Server secret.
  * @param {string} key Persisted idempotency key.
+ * @param {number} [amountCents] Partial refund amount in cents.
  */
-export async function changeMpPayment(paymentId: string, action: "CANCEL" | "REFUND", accessToken: string, key: string): Promise<void> {
+export async function changeMpPayment(paymentId: string, action: "CANCEL" | "REFUND", accessToken: string, key: string, amountCents?: number): Promise<void> {
   if (!/^\d+$/.test(paymentId)) throw new Error("MP_INVALID_ID");
+  if (amountCents !== undefined && (!Number.isSafeInteger(amountCents) || amountCents <= 0)) throw new Error("MP_INVALID_REFUND_AMOUNT");
   const response = await fetch(`${MP_PAYMENTS_URL}/${paymentId}${action === "REFUND" ? "/refunds" : ""}`, {
     method: action === "REFUND" ? "POST" : "PUT",
     headers: {
@@ -17,7 +19,9 @@ export async function changeMpPayment(paymentId: string, action: "CANCEL" | "REF
       "Content-Type": "application/json",
       "X-Idempotency-Key": key,
     },
-    body: JSON.stringify(action === "REFUND" ? {} : {status: "cancelled"}),
+    body: JSON.stringify(action === "REFUND" ?
+      (amountCents === undefined ? {} : {amount: amountCents / 100}) :
+      {status: "cancelled"}),
     signal: AbortSignal.timeout(15000),
   });
   if (!response.ok) {
@@ -54,6 +58,7 @@ export type MpPayment = {
   statusDetail: string;
   externalReference: string;
   totalCents: number;
+  refundedCents: number;
   currency: string;
   paymentMethod: string;
   paymentType: string;
@@ -95,6 +100,10 @@ function parsePayment(data: unknown): MpPayment {
   }
   const totalCents = Math.round(payment.transaction_amount * 100);
   if (!Number.isSafeInteger(totalCents)) throw new Error("MP_INVALID_AMOUNT");
+  const refundedAmount = payment.transaction_amount_refunded ?? 0;
+  if (typeof refundedAmount !== "number" || !Number.isFinite(refundedAmount) || refundedAmount < 0) throw new Error("MP_INVALID_REFUNDED_AMOUNT");
+  const refundedCents = Math.round(refundedAmount * 100);
+  if (!Number.isSafeInteger(refundedCents) || refundedCents > totalCents) throw new Error("MP_INVALID_REFUNDED_AMOUNT");
   const qr = record(record(payment.point_of_interaction).transaction_data);
   return {
     paymentId: id,
@@ -102,6 +111,7 @@ function parsePayment(data: unknown): MpPayment {
     statusDetail: String(payment.status_detail ?? ""),
     externalReference: String(payment.external_reference ?? ""),
     totalCents,
+    refundedCents,
     currency: String(payment.currency_id ?? ""),
     paymentMethod: String(payment.payment_method_id ?? ""),
     paymentType: String(payment.payment_type_id ?? ""),

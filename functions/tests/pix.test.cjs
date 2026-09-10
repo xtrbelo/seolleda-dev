@@ -6,6 +6,8 @@ const vm = require("node:vm");
 const crypto = require("node:crypto");
 const {Timestamp, FieldValue} = require("firebase-admin/firestore");
 const {HttpsError} = require("firebase-functions/v2/https");
+const partialId1 = "11111111-1111-4111-8111-111111111111";
+const partialId2 = "22222222-2222-4222-8222-222222222222";
 
 // Execute compiled production handlers with an isolated in-memory transaction
 // adapter and fake HTTP provider. No credentials, network or Firebase writes.
@@ -25,6 +27,7 @@ function fixture() {
   const errors = [];
   let httpFailure = null;
   const payments = new Map();
+  const refundRequests = new Map();
   let queue = Promise.resolve();
   let failCommit = false;
   let afterPost = null;
@@ -68,7 +71,18 @@ function fixture() {
     if (httpFailure) return httpFailure;
     if (url.endsWith("/refunds") || options.method === "PUT") {
       const payment = [...payments.values()][0].data;
-      payment.status = url.endsWith("/refunds") ? "refunded" : "cancelled";
+      if (url.endsWith("/refunds")) {
+        const key = options.headers["X-Idempotency-Key"];
+        const body = JSON.parse(options.body);
+        if (refundRequests.has(key)) assert.equal(refundRequests.get(key), options.body, "retry refund payload changed");
+        else {
+          refundRequests.set(key, options.body);
+          const previous = payment.transaction_amount_refunded ?? 0;
+          payment.transaction_amount_refunded = previous + (body.amount ?? payment.transaction_amount - previous);
+        }
+        payment.status = payment.transaction_amount_refunded === payment.transaction_amount ? "refunded" : "approved";
+        payment.status_detail = payment.status === "refunded" ? "refunded" : "accredited";
+      } else payment.status = "cancelled";
       if (afterPost) await afterPost();
       return {ok: true, json: async () => ({})};
     }
@@ -147,8 +161,8 @@ function fixture() {
   };
   return {
     docs, http, payments, webhook, errors,
-    manage: (action, auth = {uid: "admin1", token: {roles: ["admin"]}}) => manage({
-      auth, data: {saleId: "sale1", action, reason: "Solicitação do cliente"},
+    manage: (action, auth = {uid: "admin1", token: {roles: ["admin"]}}, data = {}) => manage({
+      auth, data: {saleId: "sale1", action, reason: "Solicitação do cliente", ...data},
     }),
     rejectHttp: (body) => {
       httpFailure = {ok: false, status: 401, json: async () => body};
@@ -521,4 +535,99 @@ test("consultation preserves review and cannot approve a sale manually", async (
   assert.equal(f.sale().status, "PAYMENT_REVIEW_REQUIRED");
   assert.equal(f.sale().paymentReconciliationRequired, true);
   assert.equal(f.movementCount(), 0);
+});
+
+test("partial refund uses persisted item prices and records the provider total", async () => {
+  const f = fixture();
+  await f.createCard();
+  f.approve();
+  await f.webhook();
+  const result = await f.manage("PARTIAL_REFUND", undefined, {
+    requestId: partialId1, items: [{productId: "p1", quantity: 1}],
+  });
+  assert.equal(result.confirmed, true);
+  assert.equal(result.partialRefundedCents, 625);
+  assert.equal(f.sale().status, "PAID");
+  assert.equal(f.sale().partialRefundedCents, 625);
+  assert.equal(f.sale().partialReturnPendingCount, 1);
+  assert.equal(f.sale().stockReconciliationRequired, true);
+  assert.equal(f.docs.get(`paymentOperations/partial_${partialId1}`).amountCents, 625);
+  const refundCall = f.http.find((call) => call.url.endsWith("/refunds"));
+  assert.equal(JSON.parse(refundCall.body).amount, 6.25);
+  assert.equal(f.docs.get("inventory/store1_p1").quantity, 6);
+});
+
+test("partial refund replay and concurrent requests cannot refund twice", async () => {
+  const f = fixture();
+  await f.createCard();
+  f.approve();
+  await f.webhook();
+  const data = {requestId: partialId1, items: [{productId: "p1", quantity: 1}]};
+  const first = await f.manage("PARTIAL_REFUND", undefined, data);
+  const replay = await f.manage("PARTIAL_REFUND", undefined, data);
+  assert.equal(first.partialRefundedCents, replay.partialRefundedCents);
+  assert.equal(f.http.filter((call) => call.url.endsWith("/refunds")).length, 1);
+  assert.equal(f.sale().partialReturnPendingCount, 1);
+
+  const f2 = fixture();
+  await f2.createCard();
+  f2.approve();
+  await f2.webhook();
+  const results = await Promise.allSettled([
+    f2.manage("PARTIAL_REFUND", undefined, data),
+    f2.manage("PARTIAL_REFUND", undefined, {requestId: partialId2, items: [{productId: "p1", quantity: 1}]}),
+  ]);
+  assert.equal(results.filter((result) => result.status === "fulfilled").length, 1);
+  assert.equal(f2.http.filter((call) => call.url.endsWith("/refunds")).length, 1);
+  assert.equal(f2.sale().partialRefundedCents, 625);
+});
+
+test("lost partial refund response is recovered without another provider refund", async () => {
+  const f = fixture();
+  await f.createCard();
+  f.approve();
+  await f.webhook();
+  const data = {requestId: partialId1, items: [{productId: "p1", quantity: 1}]};
+  f.afterPost(() => { throw new Error("lost partial response"); });
+  await assert.rejects(f.manage("PARTIAL_REFUND", undefined, data), {code: "unavailable"});
+  assert.equal(f.sale().partialRefunds[0].state, "REQUESTED");
+  f.afterPost(null);
+  const recovered = await f.manage("PARTIAL_REFUND", undefined, data);
+  assert.equal(recovered.confirmed, true);
+  assert.equal(f.http.filter((call) => call.url.endsWith("/refunds")).length, 1);
+  assert.equal(f.sale().partialRefunds[0].state, "CONFIRMED");
+});
+
+test("partial refunds cannot exceed remaining items and may complete the full amount", async () => {
+  const f = fixture();
+  await f.createCard();
+  f.approve();
+  await f.webhook();
+  await assert.rejects(f.manage("PARTIAL_REFUND", undefined, {
+    requestId: partialId1, items: [{productId: "p1", quantity: 3}],
+  }), {code: "failed-precondition"});
+  await f.manage("PARTIAL_REFUND", undefined, {
+    requestId: partialId1, items: [{productId: "p1", quantity: 1}],
+  });
+  await assert.rejects(f.manage("REFUND"), {code: "failed-precondition"});
+  const final = await f.manage("PARTIAL_REFUND", undefined, {
+    requestId: partialId2, items: [{productId: "p1", quantity: 1}],
+  });
+  assert.equal(final.confirmed, true);
+  assert.equal(final.partialRefundedCents, 1250);
+  assert.equal(f.sale().status, "REFUNDED");
+  assert.equal(f.sale().partialReturnPendingCount, 2);
+  assert.equal(f.http.filter((call) => call.url.endsWith("/refunds")).length, 2);
+});
+
+test("untracked provider partial refund requires review without changing stock", async () => {
+  const f = fixture();
+  await f.createCard();
+  f.approve();
+  await f.webhook();
+  f.payment().transaction_amount_refunded = 1;
+  await f.webhook();
+  assert.equal(f.sale().paymentReconciliationRequired, true);
+  assert.equal(f.sale().paymentReviewReason, "PARTIAL_REFUND_MISMATCH");
+  assert.equal(f.docs.get("inventory/store1_p1").quantity, 6);
 });
