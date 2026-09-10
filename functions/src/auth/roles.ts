@@ -1,7 +1,15 @@
 /* eslint-disable max-len */
 import {HttpsError} from "firebase-functions/v2/https";
 
-export type AdminRole = "admin" | "catalog" | "inventory" | "sales" | "reports" | "settings";
+export type AdminRole = "master" | "admin" | "catalog" | "inventory" | "sales" | "reports" | "settings";
+
+/** Checks whether a role list grants global operational access.
+ * @param {string[]} roles Role names.
+ * @return {boolean} Whether the list contains an administrator role.
+ */
+export function hasAdministrativeRole(roles: readonly string[]): boolean {
+  return roles.includes("master") || roles.includes("admin");
+}
 
 /** Extracts role claims from an authenticated callable request.
  * @param {object} request Callable request.
@@ -10,10 +18,12 @@ export type AdminRole = "admin" | "catalog" | "inventory" | "sales" | "reports" 
 function claimRoles(request: {auth?: {token?: Record<string, unknown>}}): string[] {
   const token = request.auth?.token;
   if (!token) return [];
-  if (token.admin === true) return ["admin"];
-  return Array.isArray(token.roles) ? token.roles.filter(
+  const roles = Array.isArray(token.roles) ? token.roles.filter(
     (role): role is string => typeof role === "string",
   ) : [];
+  if (roles.includes("master")) return roles;
+  if (token.admin === true) return ["admin"];
+  return roles;
 }
 
 /** Checks whether a callable request has a role or administrator claim.
@@ -23,7 +33,9 @@ function claimRoles(request: {auth?: {token?: Record<string, unknown>}}): string
  */
 export function hasRole(request: {auth?: {token?: Record<string, unknown>}}, role: AdminRole): boolean {
   const roles = claimRoles(request);
-  return roles.includes("admin") || roles.includes(role);
+  if (roles.includes("master")) return true;
+  if (roles.includes("admin")) return role !== "settings";
+  return roles.includes(role);
 }
 
 /** Rejects a callable request that lacks the required role.
@@ -61,7 +73,7 @@ export function claimStoreIds(request: {auth?: {token?: Record<string, unknown>}
  * @return {boolean} Whether access is granted.
  */
 export function hasStoreAccess(request: {auth?: {token?: Record<string, unknown>}}, storeId: string): boolean {
-  return hasRole(request, "admin") || claimStoreIds(request).includes(storeId);
+  return hasAdministrativeRole(claimRoles(request)) || claimStoreIds(request).includes(storeId);
 }
 
 /** Reject a request that lacks access to a store.

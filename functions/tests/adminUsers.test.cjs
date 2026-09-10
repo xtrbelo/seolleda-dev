@@ -19,6 +19,7 @@ function user(uid, values = {}) {
 
 function fixture(overrides = {}) {
   const records = new Map([
+    ["master1", user("master1", {customClaims: {roles: ["master"]}})],
     ["admin1", user("admin1", {customClaims: {roles: ["admin"]}})],
     ["admin2", user("admin2", {customClaims: {admin: true, externalClaim: "preserved"}})],
   ]);
@@ -74,10 +75,29 @@ test("user management requires administrator and lists at most one hundred accou
   const result = await f.call({action: "list", pageToken: "page-2"});
   assert.deepEqual(f.calls.find((entry) => entry.method === "listUsers"), {method: "listUsers", limit: 100, pageToken: "page-2"});
   assert.equal(result.nextPageToken, "next");
-  assert.deepEqual(JSON.parse(JSON.stringify(result.users[0].roles)), ["admin"]);
+  assert.deepEqual(JSON.parse(JSON.stringify(result.users.find((account) => account.uid === "admin1").roles)), ["admin"]);
   assert.deepEqual(JSON.parse(JSON.stringify(result.users[0].storeIds)), []);
+  const masterResult = await f.call({action: "list"}, {uid: "master1", token: {roles: ["master"]}});
+  assert.deepEqual(JSON.parse(JSON.stringify(masterResult.users.find((account) => account.uid === "master1").roles)), ["master"]);
   f.records.get("admin1").customClaims = {roles: ["settings"]};
   await assert.rejects(f.call({action: "list"}), {code: "permission-denied"});
+});
+
+test("master and administrator are exclusive global profiles without store claims", async () => {
+  const f = fixture();
+  await assert.rejects(f.call({action: "create", email: "mixed@example.com", displayName: "Mixed", roles: ["master", "settings"], storeIds: []}), {code: "invalid-argument"});
+  await assert.rejects(f.call({action: "create", email: "master-store@example.com", displayName: "Master Store", roles: ["master"], storeIds: ["store1"]}), {code: "invalid-argument"});
+  await assert.rejects(f.call({action: "create", email: "master@example.com", displayName: "Master User", roles: ["master"], storeIds: []}), {code: "permission-denied"});
+  const result = await f.call({action: "create", email: "master@example.com", displayName: "Master User", roles: ["master"], storeIds: []}, {uid: "master1", token: {roles: ["master"]}});
+  const claims = f.calls.find((entry) => entry.method === "setCustomUserClaims");
+  assert.deepEqual(JSON.parse(JSON.stringify(claims.claims)), {roles: ["master"]});
+  assert.deepEqual(JSON.parse(JSON.stringify(result.user.roles)), ["master"]);
+  assert.deepEqual(JSON.parse(JSON.stringify(result.user.storeIds)), []);
+});
+
+test("administrator cannot alter a master profile", async () => {
+  const f = fixture();
+  await assert.rejects(f.call({action: "update", uid: "master1", displayName: "Master", roles: ["admin"], storeIds: [], disabled: false}), {code: "permission-denied"});
 });
 
 test("creating an account never sends or stores a password and requires scoped stores", async () => {

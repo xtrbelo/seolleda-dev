@@ -3,6 +3,7 @@ import { listAdminSales, managePayment, saleSituation, type AdminSale, type Sale
 import { useAuth } from "../contexts/useAuth";
 import SaleStockResolution from "../components/SaleStockResolution";
 import SaleReservationReconciliation from "../components/SaleReservationReconciliation";
+import { hasAdministrativeAccess } from "../lib/adminRoles";
 
 const money = (cents: number) => (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const date = (value: AdminSale["createdAt"]) => value?.toDate().toLocaleString("pt-BR") ?? "—";
@@ -23,6 +24,7 @@ const paymentReviewReason = (reason?: string) => ({
 
 export default function SalesPage() {
   const { roles } = useAuth();
+  const hasFullAccess = hasAdministrativeAccess(roles);
   const [operation, setOperation] = useState<PaymentAction>("CHECK");
   const [reason, setReason] = useState("");
   const [partialQuantities, setPartialQuantities] = useState<Record<string, string>>({});
@@ -142,7 +144,7 @@ export default function SalesPage() {
     (Number(partialQuantities[item.productId] ?? 0) || 0) * item.unitPriceCents, 0) ?? 0;
   const chooseStatus = (next: string) => { setStatus(next); setSelected(null); };
 
-  return <section className="stock-page">
+  return <section className="stock-page sales-page">
     <div className="page-heading"><div><span className="eyebrow">Operação</span><h1>Vendas</h1><p>Consulte compras e acompanhe pendências.</p></div></div>
     <form className="sales-filters" onSubmit={submit}>
       <label>De<input type="date" value={from} onChange={(e) => setFrom(e.target.value)} required /></label>
@@ -163,21 +165,21 @@ export default function SalesPage() {
       <button type="button" className={status === "Estoque" ? "operation-card selected" : "operation-card"} onClick={() => chooseStatus("Estoque")}><strong>{stockReviews}</strong><span>Revisões de estoque</span></button>
       <button type="button" className={status === "Paga" ? "operation-card selected" : "operation-card"} onClick={() => chooseStatus("Paga")}><strong>{paidSales}</strong><span>Pagamentos concluídos</span></button>
     </div>
-    <p role="status">{visible.length} exibida(s) de {sales.length} carregada(s). Busca e situação filtram as vendas carregadas do período consultado.</p>
+    <p className="results-summary" role="status">{visible.length} exibida(s) de {sales.length} carregada(s). Busca e situação filtram as vendas carregadas do período consultado.</p>
     {error && <p className="page-error" role="alert">{error}</p>}
     <div className="stock-table-wrap"><table className="stock-table">
       <thead><tr><th>Data</th><th>Venda</th><th>Terminal</th><th>Total</th><th>Situação</th><th>Ações</th></tr></thead>
       <tbody>{visible.map((sale) => <tr key={sale.id}>
         <td>{date(sale.createdAt)}</td><td>{sale.id}</td><td>{sale.terminalId}</td><td>{money(sale.totalCents)}</td>
         <td>{saleSituation(sale, now)}{sale.stockReconciliationRequired && <small className="inactive-label">Revisar estoque</small>}</td>
-        <td><button type="button" onClick={() => { setSelected(sale); setOperation("CHECK"); setReason(""); setPartialQuantities({}); setPartialRequestId(""); setOperationMessage(""); }} aria-label={`Ver detalhes da venda ${sale.id}`}>Detalhes</button></td>
+        <td className="table-actions"><button type="button" onClick={() => { setSelected(sale); setOperation("CHECK"); setReason(""); setPartialQuantities({}); setPartialRequestId(""); setOperationMessage(""); }} aria-label={`Ver detalhes da venda ${sale.id}`}>Detalhes</button></td>
       </tr>)}</tbody>
     </table>{!loading && visible.length === 0 && <p className="table-message">Nenhuma venda encontrada nos dados carregados.</p>}</div>
     {loading && <p role="status">Carregando vendas…</p>}
     {hasMore && <button className="secondary-button" disabled={loading} onClick={() => void load(period, cursor)}>Carregar mais vendas</button>}
     <dialog ref={dialog} className="sales-dialog" onCancel={(event) => { if (operating) event.preventDefault(); else setSelected(null); }} onClose={() => setSelected(null)} aria-labelledby="sale-detail-title">
       {selected && <>
-        <div className="modal-header"><h2 id="sale-detail-title">Detalhes da venda</h2><button type="button" disabled={operating} onClick={() => setSelected(null)} aria-label="Fechar detalhes">Fechar</button></div>
+        <div className="modal-header"><h2 id="sale-detail-title">Detalhes da venda</h2><button type="button" className="modal-close" disabled={operating} onClick={() => setSelected(null)} aria-label="Fechar detalhes">×</button></div>
         <p className="sales-id">{selected.id}</p>
         <dl className="sales-details">
           <dt>Situação</dt><dd>{saleSituation(selected, now)}</dd>
@@ -195,13 +197,13 @@ export default function SalesPage() {
         <div className="stock-table-wrap"><table className="stock-table"><thead><tr><th>Produto / SKU</th><th>Qtd.</th><th>Unitário</th><th>Total</th></tr></thead>
           <tbody>{(selected.items ?? []).map((item) => <tr key={item.productId}><td>{item.name}<small className="inactive-label">{item.sku}</small></td><td>{item.quantity}</td><td>{money(item.unitPriceCents)}</td><td>{money(item.totalCents)}</td></tr>)}</tbody></table></div>
         <p><strong>Total: {money(selected.totalCents)}</strong>{(selected.partialRefundedCents ?? 0) > 0 && <> · Reembolsado: <strong>{money(selected.partialRefundedCents ?? 0)}</strong> · Líquido: <strong>{money(selected.totalCents - (selected.partialRefundedCents ?? 0))}</strong></>}</p>
-        {roles.includes("admin") && <SaleReservationReconciliation key={`reservation-${selected.id}`} sale={selected} busy={operating} onBusy={setOperating} onResolved={(resolution) => {
+        {hasFullAccess && <SaleReservationReconciliation key={`reservation-${selected.id}`} sale={selected} busy={operating} onBusy={setOperating} onResolved={(resolution) => {
           const updated = {...selected, reservationReconciliation: resolution,
             reservationStatus: "RELEASED", stockReconciliationRequired: false};
           setSelected(updated);
           setSales((previous) => previous.map((sale) => sale.id === updated.id ? updated : sale));
         }} />}
-        {roles.includes("admin") && <SaleStockResolution key={`return-${selected.id}`} sale={selected} busy={operating} onBusy={setOperating} onResolved={(resolution, refundId) => {
+        {hasFullAccess && <SaleStockResolution key={`return-${selected.id}`} sale={selected} busy={operating} onBusy={setOperating} onResolved={(resolution, refundId) => {
           const partialRefunds = refundId ? (selected.partialRefunds ?? []).map((refund) => refund.id === refundId ?
             {...refund, stockState: "RESOLVED" as const, returnedItems: resolution.returnedItems,
               stockReason: resolution.reason, stockUserId: resolution.userId, stockResolvedAtMs: resolution.resolvedAtMs} : refund) : selected.partialRefunds;
@@ -213,7 +215,7 @@ export default function SalesPage() {
           setSelected(updated);
           setSales((previous) => previous.map((sale) => sale.id === updated.id ? updated : sale));
         }} />}
-        {roles.includes("admin") && selected.mercadoPagoPaymentId && <form onSubmit={operate}>
+        {hasFullAccess && selected.mercadoPagoPaymentId && <form className="resolution-form" onSubmit={operate}>
           <h3>Operações de pagamento</h3>
           <p>Última situação no provedor: {providerStatus(selected.mercadoPagoPaymentStatus)}.</p>
           {selected.paymentOperationState && <p>Operação registrada: {selected.paymentOperationAction === "REFUND" ? "Reembolso integral" : selected.paymentOperationAction === "PARTIAL_REFUND" ? "Reembolso por itens" : "Cancelamento"} — {selected.paymentOperationState === "CONFIRMED" ? "Confirmada" : "Aguardando confirmação"}. Motivo: {selected.paymentOperationReason || "—"}</p>}
@@ -254,7 +256,7 @@ export default function SalesPage() {
             <label>Motivo<textarea required minLength={5} maxLength={500} value={reason} disabled={operating || (operation === "PARTIAL_REFUND" && Boolean(pendingPartialPayment))} onChange={(event) => { setReason(event.target.value); setPartialRequestId(""); }} /></label>
             <p>{operation === "REFUND" ? `Você confirma o reembolso integral de ${money(selected.totalCents)} desta venda. Produtos vendidos não voltam automaticamente ao estoque; confira a devolução física.` : operation === "PARTIAL_REFUND" ? "O Mercado Pago devolverá somente o valor dos itens selecionados. Depois, registre quais unidades retornaram fisicamente ao estoque." : "Você confirma o cancelamento desta cobrança, se ainda estiver pendente no provedor."}</p>
           </>}
-          <button type="submit" disabled={operating || (operation === "PARTIAL_REFUND" && selectedPartialAmount <= 0)}>{operating ? "Consultando provedor…" : operation === "CHECK" ? "Consultar provedor" : operation === "REFUND" ? "Confirmar reembolso integral" : operation === "PARTIAL_REFUND" ? "Confirmar reembolso dos itens" : "Confirmar cancelamento"}</button>
+          <button className="primary-action" type="submit" disabled={operating || (operation === "PARTIAL_REFUND" && selectedPartialAmount <= 0)}>{operating ? "Consultando provedor…" : operation === "CHECK" ? "Consultar provedor" : operation === "REFUND" ? "Confirmar reembolso integral" : operation === "PARTIAL_REFUND" ? "Confirmar reembolso dos itens" : "Confirmar cancelamento"}</button>
           {operationMessage && <p role="status">{operationMessage}</p>}
         </form>}
       </>}

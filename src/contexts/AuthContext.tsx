@@ -30,7 +30,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       void getIdTokenResult(authenticatedUser).then((result) => {
         if (auth.currentUser?.uid !== authenticatedUser.uid) return;
         const claimRoles = Array.isArray(result.claims.roles) ? result.claims.roles : [];
-        setRoles(result.claims.admin === true ? ["admin"] : claimRoles.filter((role): role is string => typeof role === "string"));
+        const validRoles = claimRoles.filter((role): role is string => typeof role === "string");
+        setRoles(validRoles.includes("master") ? validRoles : result.claims.admin === true ? ["admin"] : validRoles);
         setStoreIds(Array.isArray(result.claims.storeIds) ? result.claims.storeIds.filter((storeId): storeId is string => typeof storeId === "string") : []);
         setLoading(false);
       }).catch(() => {

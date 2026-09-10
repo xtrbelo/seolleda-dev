@@ -2,9 +2,9 @@
 import {HttpsError, onCall} from "firebase-functions/v2/https";
 import type {UserRecord} from "firebase-admin/auth";
 import {adminAuth} from "../lib/firebaseAdmin.js";
-import {requireRole, type AdminRole} from "./roles.js";
+import {hasAdministrativeRole, requireRole, type AdminRole} from "./roles.js";
 
-const ALL_ROLES: AdminRole[] = ["admin", "catalog", "inventory", "sales", "reports", "settings"];
+const ALL_ROLES: AdminRole[] = ["master", "admin", "catalog", "inventory", "sales", "reports", "settings"];
 const STORE_SCOPED_ROLES: AdminRole[] = ["inventory", "sales", "reports"];
 const STORE_ID = /^[A-Za-z0-9_-]{1,128}$/;
 
@@ -39,7 +39,7 @@ function roles(value: unknown): AdminRole[] {
     throw new HttpsError("invalid-argument", "Selecione ao menos uma permissão válida.");
   }
   const result = [...new Set(value as AdminRole[])];
-  if (result.length !== value.length || (result.includes("admin") && result.length !== 1)) throw new HttpsError("invalid-argument", "Combinação de permissões inválida.");
+  if (result.length !== value.length || (hasAdministrativeRole(result) && result.length !== 1)) throw new HttpsError("invalid-argument", "Combinação de permissões inválida.");
   return result;
 }
 
@@ -53,7 +53,7 @@ function stores(value: unknown, selectedRoles: AdminRole[]): string[] {
     throw new HttpsError("invalid-argument", "Selecione lojas válidas.");
   }
   const result = [...new Set(value as string[])];
-  if (result.length !== value.length || (selectedRoles.includes("admin") && result.length > 0) ||
+  if (result.length !== value.length || (hasAdministrativeRole(selectedRoles) && result.length > 0) ||
       (selectedRoles.some((role) => STORE_SCOPED_ROLES.includes(role)) && result.length === 0)) {
     throw new HttpsError("invalid-argument", "Selecione ao menos uma loja para os papéis operacionais.");
   }
@@ -65,9 +65,11 @@ function stores(value: unknown, selectedRoles: AdminRole[]): string[] {
  * @return {AdminRole[]} Managed roles.
  */
 function recordRoles(claims: Record<string, unknown>): AdminRole[] {
-  if (claims.admin === true) return ["admin"];
-  if (!Array.isArray(claims.roles)) return [];
-  return [...new Set(claims.roles.filter((role): role is AdminRole => typeof role === "string" && ALL_ROLES.includes(role as AdminRole)))];
+  const result = Array.isArray(claims.roles) ? [...new Set(claims.roles.filter(
+    (role): role is AdminRole => typeof role === "string" && ALL_ROLES.includes(role as AdminRole),
+  ))] : [];
+  if (result.includes("master")) return result;
+  return claims.admin === true ? ["admin"] : result;
 }
 
 /** Return only valid store identifiers from an Auth record.
@@ -91,7 +93,7 @@ function updatedClaims(current: Record<string, unknown>, selectedRoles: AdminRol
   delete result.roles;
   delete result.storeIds;
   result.roles = selectedRoles;
-  if (!selectedRoles.includes("admin") && selectedStores.length > 0) result.storeIds = selectedStores;
+  if (!hasAdministrativeRole(selectedRoles) && selectedStores.length > 0) result.storeIds = selectedStores;
   return result;
 }
 
@@ -124,7 +126,7 @@ async function requireLiveAdmin(uid: string): Promise<void> {
   } catch {
     throw new HttpsError("permission-denied", "Acesso administrativo não confirmado.");
   }
-  if (actor.disabled || !recordRoles(actor.customClaims ?? {}).includes("admin")) {
+  if (actor.disabled || !hasAdministrativeRole(recordRoles(actor.customClaims ?? {}))) {
     throw new HttpsError("permission-denied", "Acesso administrativo não confirmado.");
   }
 }
@@ -153,6 +155,7 @@ export const manageAdminUsers = onCall({region: "southamerica-east1"}, async (re
     if (input?.action === "create") {
       const selectedRoles = roles(input.roles);
       const selectedStores = stores(input.storeIds, selectedRoles);
+      if (selectedRoles.includes("master")) requireRole(request, "settings");
       const created = await adminAuth.createUser({email: email(input.email), displayName: text(input.displayName, 100, 2), disabled: false});
       try {
         await adminAuth.setCustomUserClaims(created.uid, updatedClaims({}, selectedRoles, selectedStores));
@@ -176,6 +179,7 @@ export const manageAdminUsers = onCall({region: "southamerica-east1"}, async (re
       const selectedStores = stores(input.storeIds, selectedRoles);
       const current = await adminAuth.getUser(uid);
       const currentClaims = current.customClaims ?? {};
+      if (selectedRoles.includes("master") || recordRoles(currentClaims).includes("master")) requireRole(request, "settings");
       await adminAuth.setCustomUserClaims(uid, updatedClaims(currentClaims, selectedRoles, selectedStores));
       let updated: UserRecord;
       try {

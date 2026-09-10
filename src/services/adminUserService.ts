@@ -2,7 +2,7 @@ import { sendPasswordResetEmail } from "firebase/auth";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { app, auth } from "../lib/firebase";
 
-export const ADMIN_ROLES = ["admin", "catalog", "inventory", "sales", "reports", "settings"] as const;
+export const ADMIN_ROLES = ["master", "admin", "catalog", "inventory", "sales", "reports", "settings"] as const;
 export type AdminRole = typeof ADMIN_ROLES[number];
 export type AdminUser = {
   uid: string;

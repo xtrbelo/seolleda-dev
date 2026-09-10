@@ -57,7 +57,7 @@ export default function SaleReservationReconciliation({ sale, busy, onBusy, onRe
     } finally { onBusy(false); }
   }
 
-  if (sale.reservationReconciliation) return <section aria-label="Conciliação de reservas concluída">
+  if (sale.reservationReconciliation) return <section className="resolution-panel" aria-label="Conciliação de reservas concluída">
     <h3>Conciliação de reservas concluída</h3>
     <Differences items={sale.reservationReconciliation.items} />
     <p><strong>Motivo:</strong> {sale.reservationReconciliation.reason}</p>
@@ -65,20 +65,22 @@ export default function SaleReservationReconciliation({ sale, busy, onBusy, onRe
     <p><strong>Data:</strong> {new Date(sale.reservationReconciliation.resolvedAtMs).toLocaleString("pt-BR")}</p>
   </section>;
   if (!eligible) return null;
-  if (!items) return <section aria-label="Conciliação de reservas">
+  if (!items) return <section className="resolution-panel" aria-label="Conciliação de reservas">
     <h3>Conciliação de reservas</h3>
     <p>A análise compara o saldo reservado com todas as vendas ainda abertas da loja.</p>
-    <button type="button" disabled={busy} onClick={() => void preview()}>{busy ? "Analisando…" : "Analisar reservas"}</button>
+    <button className="primary-action" type="button" disabled={busy} onClick={() => void preview()}>{busy ? "Analisando…" : "Analisar reservas"}</button>
     {message && <p role="alert">{message}</p>}
   </section>;
-  return <form onSubmit={apply} aria-label="Aplicar conciliação de reservas">
+  return <form className="resolution-form" onSubmit={apply} aria-label="Aplicar conciliação de reservas">
     <h3>Conciliação de reservas</h3>
     <Differences items={items} />
     <p>A correção preserva as quantidades exigidas pelas outras vendas ainda reservadas.</p>
     <label>Justificativa<textarea required minLength={5} maxLength={500} disabled={busy} value={reason} onChange={(event) => setReason(event.target.value)} /></label>
-    <label><input type="checkbox" required checked={confirmed} disabled={busy} onChange={(event) => setConfirmed(event.target.checked)} /> Conferi os valores acima e autorizo a correção das reservas.</label>
-    <button type="submit" disabled={busy || !confirmed || !previewToken}>{busy ? "Conciliando…" : "Confirmar conciliação"}</button>
-    <button type="button" disabled={busy} onClick={() => { setItems(undefined); setPreviewToken(""); setConfirmed(false); setMessage(""); }}>Analisar novamente</button>
+    <label className="checkbox-label"><input type="checkbox" required checked={confirmed} disabled={busy} onChange={(event) => setConfirmed(event.target.checked)} /> Conferi os valores acima e autorizo a correção das reservas.</label>
+    <div className="form-actions">
+      <button className="secondary-button" type="button" disabled={busy} onClick={() => { setItems(undefined); setPreviewToken(""); setConfirmed(false); setMessage(""); }}>Analisar novamente</button>
+      <button className="primary-action" type="submit" disabled={busy || !confirmed || !previewToken}>{busy ? "Conciliando…" : "Confirmar conciliação"}</button>
+    </div>
     {message && <p role="alert">{message}</p>}
   </form>;
 }

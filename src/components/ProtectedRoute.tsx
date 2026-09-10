@@ -1,5 +1,6 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/useAuth";
+import { hasRoleAccess } from "../lib/adminRoles";
 
 function AuthLoading() {
   return (
@@ -22,7 +23,7 @@ export function ProtectedRoute({ roles = [] }: { roles?: string[] }) {
     return <Navigate to="/admin/login" replace state={{ from: location }} />;
   }
 
-  if (roles.length && !userRoles.includes("admin") && !roles.some((role) => userRoles.includes(role))) {
+  if (roles.length && !roles.some((role) => hasRoleAccess(userRoles, role))) {
     return <Navigate to="/admin" replace />;
   }
 

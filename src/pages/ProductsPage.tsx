@@ -228,19 +228,21 @@ function ProductsPage() {
           className="primary-action"
           onClick={openCreateModal}
         >
-          + Novo produto
+          Novo produto
         </button>
       </div>
 
       <div className="products-toolbar">
-        <label htmlFor="product-search">Buscar produtos</label>
-        <input
-          id="product-search"
-          type="search"
-          placeholder="Nome, SKU ou código de barras"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-        />
+        <label htmlFor="product-search">
+          Buscar produtos
+          <input
+            id="product-search"
+            type="search"
+            placeholder="Nome, SKU ou código de barras"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+          />
+        </label>
       </div>
 
       {pageError && (

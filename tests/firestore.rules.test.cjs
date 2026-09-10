@@ -47,6 +47,20 @@ test("inventory role reads only assigned store inventory", async () => {
   await assertFails(deleteDoc(doc(inventory, "inventory/store-a_product")));
 });
 
+test("store reads respect assignments and every direct write stays blocked", async () => {
+  await seed("stores/store-a", {name: "Loja A", address: "", contact: "", active: true});
+  await seed("stores/store-b", {name: "Loja B", address: "", contact: "", active: true});
+  const inventory = db("inventory-user", {roles: ["inventory"], storeIds: ["store-a"]});
+  const settings = db("settings-user", {roles: ["settings"]});
+  const publicDb = environment.unauthenticatedContext().firestore();
+  await assertSucceeds(getDoc(doc(inventory, "stores/store-a")));
+  await assertFails(getDoc(doc(inventory, "stores/store-b")));
+  await assertSucceeds(getDoc(doc(settings, "stores/store-b")));
+  await assertFails(getDoc(doc(publicDb, "stores/store-a")));
+  await assertFails(setDoc(doc(settings, "stores/store-c"), {name: "Loja C", active: false}));
+  await assertFails(deleteDoc(doc(settings, "stores/store-a")));
+});
+
 test("stock movement reads enforce store scope", async () => {
   await seed("stockMovements/store-a_move", {storeId: "store-a", productId: "product"});
   await seed("stockMovements/store-b_move", {storeId: "store-b", productId: "product"});
@@ -56,11 +70,18 @@ test("stock movement reads enforce store scope", async () => {
   await assertFails(getDoc(doc(sales, "sales/sale-a")));
 });
 
-test("admin remains global but direct sales writes stay blocked", async () => {
+test("master and administrator remain global but direct sales writes stay blocked", async () => {
   await seed("inventory/store-b_product", {storeId: "store-b", productId: "product"});
-  const admin = db("admin-user", {admin: true});
-  await assertSucceeds(getDoc(doc(admin, "inventory/store-b_product")));
+  await seed("stores/store-b", {name: "Loja B", active: true});
+  const legacyAdmin = db("legacy-admin-user", {admin: true});
+  const admin = db("admin-user", {roles: ["admin"]});
+  const master = db("master-user", {roles: ["master"]});
+  await assertSucceeds(getDoc(doc(legacyAdmin, "inventory/store-b_product")));
+  await assertSucceeds(getDoc(doc(admin, "stores/store-b")));
+  await assertSucceeds(getDoc(doc(master, "inventory/store-b_product")));
+  await assertSucceeds(getDoc(doc(master, "stores/store-b")));
   await assertFails(setDoc(doc(admin, "sales/sale-a"), {status: "PAID"}));
+  await assertFails(setDoc(doc(master, "sales/sale-b"), {status: "PAID"}));
 });
 
 test("stock resolutions and return movements cannot be forged or deleted from clients", async () => {

@@ -44,8 +44,11 @@ export const manageSettings = onCall({region: "southamerica-east1"}, async (requ
     };
   }
   if (!["store", "terminal"].includes(input.action)) throw new HttpsError("invalid-argument", "Operação inválida.");
-  const id = input.action === "terminal" && input.create === true ?
-    firestore.collection("terminals").doc().id : identifier(input.id);
+  const create = input.create === true;
+  if (input.action === "terminal" && typeof input.create !== "boolean") throw new HttpsError("invalid-argument", "Operação inválida.");
+  if (input.action === "store" && input.create !== undefined && typeof input.create !== "boolean") throw new HttpsError("invalid-argument", "Operação inválida.");
+  const collection = input.action === "store" ? "stores" : "terminals";
+  const id = create ? firestore.collection(collection).doc().id : identifier(input.id);
   const name = text(input.name, 120, 2);
   const actor = request.auth!.uid;
   const auditRef = firestore.collection("settingsAudit").doc();
@@ -55,23 +58,38 @@ export const manageSettings = onCall({region: "southamerica-east1"}, async (requ
     const ref = firestore.collection("stores").doc(id);
     await firestore.runTransaction(async (tx) => {
       const existing = await tx.get(ref);
-      if (!existing.exists) throw new HttpsError("not-found", "Loja não encontrada.");
-      const update = {name, address, contact};
-      tx.update(ref, {...update, updatedAt: FieldValue.serverTimestamp()});
-      tx.set(auditRef, {action: "store", targetId: id, userId: actor, changes: update, createdAt: FieldValue.serverTimestamp()});
+      if (create && existing.exists) throw new HttpsError("already-exists", "Já existe uma loja com esta identificação.");
+      if (!create && !existing.exists) throw new HttpsError("not-found", "Loja não encontrada.");
+      if (create && input.active === true) throw new HttpsError("failed-precondition", "Uma nova loja deve começar inativa.");
+      if (!create && input.active !== undefined && typeof input.active !== "boolean") throw new HttpsError("invalid-argument", "Situação inválida.");
+      const active = create ? false : typeof input.active === "boolean" ? input.active : existing.data()?.active === true;
+      if (!active) {
+        const activeTerminals = await tx.get(firestore.collection("terminals")
+          .where("storeId", "==", id).where("active", "==", true).limit(1));
+        if (!activeTerminals.empty) throw new HttpsError("failed-precondition", "Desative os terminais desta loja antes de desativá-la.");
+      }
+      const update = {name, address, contact, active};
+      const timestamp = FieldValue.serverTimestamp();
+      if (create) tx.create(ref, {...update, createdAt: timestamp, updatedAt: timestamp});
+      else tx.update(ref, {...update, updatedAt: timestamp});
+      tx.set(auditRef, {action: "store", targetId: id, userId: actor, changes: {...update, operation: create ? "created" : "updated"}, createdAt: timestamp});
     });
   } else {
     const storeId = identifier(input.storeId);
-    if (typeof input.active !== "boolean" || typeof input.create !== "boolean") throw new HttpsError("invalid-argument", "Situação inválida.");
+    if (typeof input.active !== "boolean") throw new HttpsError("invalid-argument", "Situação inválida.");
     const ref = firestore.collection("terminals").doc(id);
     await firestore.runTransaction(async (tx) => {
       const [existing, store] = await tx.getAll(ref, firestore.collection("stores").doc(storeId));
-      if (input.create && existing.exists) throw new HttpsError("already-exists", "Já existe um terminal com esta identificação.");
-      if (!input.create && !existing.exists) throw new HttpsError("not-found", "Terminal não encontrado.");
+      if (create && existing.exists) throw new HttpsError("already-exists", "Já existe um terminal com esta identificação.");
+      if (!create && !existing.exists) throw new HttpsError("not-found", "Terminal não encontrado.");
+      if (!create && existing.data()?.active === true && existing.data()?.storeId !== storeId) {
+        throw new HttpsError("failed-precondition", "Desative o terminal antes de mudar sua loja.");
+      }
       if (!store.exists || (input.active && store.data()?.active !== true)) throw new HttpsError("failed-precondition", "Selecione uma loja ativa para ativar o terminal.");
       const update = {name, storeId, active: input.active};
-      tx.set(ref, {...update, updatedAt: FieldValue.serverTimestamp(), ...(!existing.exists ? {createdAt: FieldValue.serverTimestamp()} : {})}, {merge: true});
-      tx.set(auditRef, {action: "terminal", targetId: id, userId: actor, changes: update, createdAt: FieldValue.serverTimestamp()});
+      const timestamp = FieldValue.serverTimestamp();
+      tx.set(ref, {...update, updatedAt: timestamp, ...(!existing.exists ? {createdAt: timestamp} : {})}, {merge: true});
+      tx.set(auditRef, {action: "terminal", targetId: id, userId: actor, changes: {...update, operation: create ? "created" : "updated"}, createdAt: timestamp});
     });
   }
   return {ok: true, id};

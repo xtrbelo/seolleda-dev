@@ -53,7 +53,7 @@ export default function SaleStockResolution({ sale, busy, onBusy, onResolved }: 
   }
 
   return <>
-    {partialRefunds.length > 0 && <section aria-label="Histórico de reembolsos parciais">
+    {partialRefunds.length > 0 && <section className="resolution-panel" aria-label="Histórico de reembolsos parciais">
       <h3>Reembolsos por itens</h3>
       {partialRefunds.map((refund) => <div key={refund.id} className="adjustment-preview">
         <p><strong>{(refund.amountCents / 100).toLocaleString("pt-BR", {style: "currency", currency: "BRL"})}</strong> — {refund.state === "CONFIRMED" ? "confirmado" : "aguardando confirmação"}</p>
@@ -64,7 +64,7 @@ export default function SaleStockResolution({ sale, busy, onBusy, onResolved }: 
           "sem reposição"}. Motivo: {refund.stockReason}</p>}
       </div>)}
     </section>}
-    {pendingPartial && <form onSubmit={submitPartial} aria-label="Conferência da devolução parcial">
+    {pendingPartial && <form className="resolution-form" onSubmit={submitPartial} aria-label="Conferência da devolução parcial">
       <h3>Conferência da devolução parcial</h3>
       <p>Informe quantas unidades deste reembolso foram recebidas em condição de voltar ao estoque. Quantidade zero encerra o item sem reposição.</p>
       {pendingPartial.items.map((item) => <label key={item.productId}>{item.name} — reembolsado: {item.quantity}
@@ -73,18 +73,18 @@ export default function SaleStockResolution({ sale, busy, onBusy, onResolved }: 
           onChange={(event) => { setPartialQuantities((current) => ({...current, [item.productId]: event.target.value})); setChecked(false); }} />
       </label>)}
       <label>Justificativa<textarea required minLength={5} maxLength={500} disabled={busy} value={reason} onChange={(event) => setReason(event.target.value)} /></label>
-      <label><input type="checkbox" required checked={checked} disabled={busy} onChange={(event) => setChecked(event.target.checked)} /> Confirmei fisicamente os itens e as quantidades que retornarão ao estoque.</label>
-      <button disabled={busy || !checked} type="submit">{busy ? "Registrando…" : "Encerrar devolução parcial"}</button>
+      <label className="checkbox-label"><input type="checkbox" required checked={checked} disabled={busy} onChange={(event) => setChecked(event.target.checked)} /> Confirmei fisicamente os itens e as quantidades que retornarão ao estoque.</label>
+      <div className="form-actions"><button className="primary-action" disabled={busy || !checked} type="submit">{busy ? "Registrando…" : "Encerrar devolução parcial"}</button></div>
       {message && <p role="alert">{message}</p>}
     </form>}
-    {sale.stockResolution && <section aria-label="Conferência de estoque concluída">
+    {sale.stockResolution && <section className="resolution-panel" aria-label="Conferência de estoque concluída">
       <h3>Conferência de estoque concluída</h3>
       <p>{sale.stockResolution.action === "RETURN_ALL" ? "Devolução integral registrada com reposição dos itens." : "Encerrada sem reposição de itens."}</p>
       <p><strong>Motivo:</strong> {sale.stockResolution.reason}</p>
       <p><strong>Responsável:</strong> {sale.stockResolution.userId}</p>
       <p><strong>Data:</strong> {new Date(sale.stockResolution.resolvedAtMs).toLocaleString("pt-BR")}</p>
     </section>}
-    {!pendingPartial && !sale.stockResolution && eligible && <form onSubmit={submit} aria-label="Conferência de devolução">
+    {!pendingPartial && !sale.stockResolution && eligible && <form className="resolution-form" onSubmit={submit} aria-label="Conferência de devolução">
       <h3>Conferência de devolução</h3>
       <p>Confira todos os itens desta venda antes de encerrar. A decisão é registrada uma única vez.</p>
       <label>Decisão<select disabled={busy} value={action} onChange={(event) => { setAction(event.target.value as "RETURN_ALL" | "NO_RETURN"); setChecked(false); }}>
@@ -93,8 +93,8 @@ export default function SaleStockResolution({ sale, busy, onBusy, onResolved }: 
       </select></label>
       <p>{action === "RETURN_ALL" ? "Serão repostas todas as quantidades da tabela acima. Use esta opção somente se os produtos estiverem aptos à venda e ainda não tiverem sido repostos por ajuste manual." : "O estoque será mantido. Informe por que não haverá reposição, por exemplo: itens não devolvidos, impróprios para venda ou saldo já corrigido manualmente."}</p>
       <label>Justificativa<textarea required minLength={5} maxLength={500} disabled={busy} value={reason} onChange={(event) => setReason(event.target.value)} /></label>
-      <label><input type="checkbox" required checked={checked} disabled={busy} onChange={(event) => setChecked(event.target.checked)} /> Confirmei a situação física dos itens e a decisão acima.</label>
-      <button disabled={busy || !checked} type="submit">{busy ? "Registrando…" : action === "RETURN_ALL" ? "Confirmar devolução e repor estoque" : "Confirmar encerramento sem reposição"}</button>
+      <label className="checkbox-label"><input type="checkbox" required checked={checked} disabled={busy} onChange={(event) => setChecked(event.target.checked)} /> Confirmei a situação física dos itens e a decisão acima.</label>
+      <div className="form-actions"><button className="primary-action" disabled={busy || !checked} type="submit">{busy ? "Registrando…" : action === "RETURN_ALL" ? "Confirmar devolução e repor estoque" : "Confirmar encerramento sem reposição"}</button></div>
       {message && <p role="alert">{message}</p>}
     </form>}
   </>;

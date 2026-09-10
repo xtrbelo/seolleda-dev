@@ -1,16 +1,18 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useAuth } from "../contexts/useAuth";
+import { hasAdministrativeAccess } from "../lib/adminRoles";
 import {
   listInventory,
   listStockMovements,
   recordStockMovement,
   updateMinimumQuantity,
 } from "../services/inventoryService";
-import { getOrCreateDefaultStore } from "../services/storeService";
+import { listAccessibleStores } from "../services/storeService";
 import { listProducts } from "../services/productService";
 import type { Inventory } from "../types/inventory";
 import type { Product } from "../types/product";
 import type { StockMovement, StockMovementType } from "../types/stockMovement";
+import type { Store } from "../types/store";
 import { useStockAlertPreferences, type StockAlertPreferences } from "../lib/stockAlertPreferences";
 
 type MovementModal = "ENTRY" | "EXIT" | "ADJUSTMENT" | null;
@@ -44,18 +46,20 @@ function statusFor(quantity: number, minimumQuantity: number, preferences: Stock
   return { label: "Normal", className: "stock-normal" };
 }
 
-async function fetchStockData() {
-  const store = await getOrCreateDefaultStore();
-  const [products, inventory] = await Promise.all([
+async function fetchInitialStockData(globalAccess: boolean, assignedStoreIds: string[]) {
+  const [stores, products] = await Promise.all([
+    listAccessibleStores(globalAccess, assignedStoreIds),
     listProducts(),
-    listInventory(store.id),
   ]);
-  return {storeId: store.id, products, inventory};
+  const storeId = (stores.find((store) => store.active) ?? stores[0])?.id ?? "";
+  const inventory = storeId ? await listInventory(storeId) : [];
+  return {stores, storeId, products, inventory};
 }
 
 function StockPage() {
   const stockAlerts = useStockAlertPreferences();
-  const { user } = useAuth();
+  const { user, roles, storeIds: assignedStoreIds } = useAuth();
+  const [stores, setStores] = useState<Store[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [inventory, setInventory] = useState<Inventory[]>([]);
   const [storeId, setStoreId] = useState("");
@@ -75,11 +79,14 @@ function StockPage() {
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
 
   async function loadData() {
+    if (!storeId) return;
     try {
-      const loaded = await fetchStockData();
-      setStoreId(loaded.storeId);
-      setProducts(loaded.products);
-      setInventory(loaded.inventory);
+      const [loadedProducts, loadedInventory] = await Promise.all([
+        listProducts(),
+        listInventory(storeId),
+      ]);
+      setProducts(loadedProducts);
+      setInventory(loadedInventory);
       setPageError("");
     } catch {
       setPageError("Não foi possível carregar o estoque. Tente novamente.");
@@ -90,8 +97,9 @@ function StockPage() {
 
   useEffect(() => {
     let active = true;
-    void fetchStockData().then((loaded) => {
+    void fetchInitialStockData(hasAdministrativeAccess(roles), assignedStoreIds).then((loaded) => {
       if (!active) return;
+      setStores(loaded.stores);
       setStoreId(loaded.storeId);
       setProducts(loaded.products);
       setInventory(loaded.inventory);
@@ -102,7 +110,26 @@ function StockPage() {
       if (active) setIsLoading(false);
     });
     return () => { active = false; };
-  }, []);
+  }, [roles, assignedStoreIds]);
+
+  const selectedStore = stores.find((store) => store.id === storeId);
+
+  async function changeStore(nextStoreId: string) {
+    setStoreId(nextStoreId);
+    setIsLoading(true);
+    setPageError("");
+    setNotice("");
+    setModal(null);
+    setIsHistoryOpen(false);
+    try {
+      setInventory(await listInventory(nextStoreId));
+    } catch {
+      setInventory([]);
+      setPageError("Não foi possível carregar o estoque desta loja.");
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   const filteredProducts = useMemo(() => {
     const normalizedSearch = search.trim().toLocaleLowerCase();
@@ -190,7 +217,7 @@ function StockPage() {
 
   async function handleMinimumChange(product: Product, value: string) {
     const parsedValue = Number(value);
-    if (!Number.isInteger(parsedValue) || parsedValue < 0 || !storeId) return;
+    if (!Number.isInteger(parsedValue) || parsedValue < 0 || !storeId || !selectedStore?.active) return;
     try {
       await updateMinimumQuantity(storeId, product.id, parsedValue);
       setInventory((current) => {
@@ -235,7 +262,7 @@ function StockPage() {
   }
 
   return (
-    <section className="stock-page">
+    <section className="stock-page inventory-page">
       <div className="page-heading stock-heading">
         <div>
           <span className="eyebrow">Operação</span>
@@ -244,14 +271,22 @@ function StockPage() {
         </div>
       </div>
       <div className="stock-toolbar">
-        <label htmlFor="stock-search">Buscar produtos</label>
-        <input
-          id="stock-search"
-          type="search"
-          placeholder="Nome, SKU ou código de barras"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-        />
+        <label htmlFor="stock-store">
+          Loja
+          <select id="stock-store" value={storeId} disabled={isLoading || stores.length === 0} onChange={(event) => void changeStore(event.target.value)}>
+            {stores.map((store) => <option key={store.id} value={store.id}>{store.name}{!store.active ? " (inativa)" : ""}</option>)}
+          </select>
+        </label>
+        <label htmlFor="stock-search">
+          Buscar produtos
+          <input
+            id="stock-search"
+            type="search"
+            placeholder="Nome, SKU ou código de barras"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+          />
+        </label>
       </div>
       {notice && (
         <p className="success-message" role="status">
@@ -263,9 +298,12 @@ function StockPage() {
           {pageError}
         </p>
       )}
+      {selectedStore && !selectedStore.active && <p className="page-error">Esta loja está inativa. Consulte o estoque ou solicite a ativação da loja nas Configurações para realizar movimentações.</p>}
       <div className="stock-table-wrap">
         {isLoading ? (
           <p className="table-message">Carregando estoque...</p>
+        ) : !storeId ? (
+          <p className="table-message">Nenhuma loja acessível para este usuário.</p>
         ) : filteredProducts.length === 0 ? (
           <p className="table-message">Nenhum produto encontrado.</p>
         ) : (
@@ -307,11 +345,13 @@ function StockPage() {
                     </td>
                     <td>
                       <input
+                        key={`${storeId}_${product.id}`}
                         className="minimum-input"
                         type="number"
                         min="0"
                         step="1"
                         defaultValue={minimumQuantity}
+                        disabled={!selectedStore?.active}
                         aria-label={`Estoque mínimo de ${product.name}`}
                         onBlur={(event) =>
                           void handleMinimumChange(product, event.target.value)
@@ -327,18 +367,21 @@ function StockPage() {
                     <td className="stock-actions">
                       <button
                         type="button"
+                        disabled={!selectedStore?.active}
                         onClick={() => openMovement(product, "ENTRY")}
                       >
                         Entrada
                       </button>
                       <button
                         type="button"
+                        disabled={!selectedStore?.active}
                         onClick={() => openMovement(product, "EXIT")}
                       >
                         Saída
                       </button>
                       <button
                         type="button"
+                        disabled={!selectedStore?.active}
                         onClick={() => openMovement(product, "ADJUSTMENT")}
                       >
                         Ajustar

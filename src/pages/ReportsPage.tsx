@@ -2,6 +2,8 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { dayKey, downloadReportCsv, loadReport, type FinancialAmounts, type PaymentMethod, type Report, type Stock } from "../services/reportService";
 import { useStockAlertPreferences } from "../lib/stockAlertPreferences";
+import { useAuth } from "../contexts/useAuth";
+import { hasRoleAccess } from "../lib/adminRoles";
 
 const money = (cents: number) => (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const methodLabel = (method: PaymentMethod) => method === "UNKNOWN" ? "Não informada" : method === "PIX" ? "Pix" : "Cartão";
@@ -12,6 +14,7 @@ function AmountCells({ amounts }: { amounts: FinancialAmounts }) {
   return <><td>{money(amounts.gross)}</td><td>{money(amounts.refunded)}</td><td>{money(amounts.disputed)}</td><td>{money(amounts.net)}</td></>;
 }
 export default function ReportsPage({ dashboard = false }: { dashboard?: boolean }) {
+  const {roles} = useAuth();
   const stockAlerts = useStockAlertPreferences();
   const today = dayKey(new Date());
   const [from, setFrom] = useState(today);
@@ -48,7 +51,7 @@ export default function ReportsPage({ dashboard = false }: { dashboard?: boolean
     setLoading(true); setResult(null); setError(""); setRequest({ from, until, storeId, paymentMethod });
   }
   const filteredLabel = [request.storeId && `Loja ${request.storeId}`, request.paymentMethod && methodLabel(request.paymentMethod)].filter(Boolean).join(" · ");
-  return <section className="dashboard-page">
+  return <section className="dashboard-page reports-page">
     <div className="page-heading"><div><span className="eyebrow">Administração</span><h1>{dashboard ? "Visão geral" : "Relatórios"}</h1><p>Vendas pela data de criação da compra, no horário local.</p></div></div>
     <form className="sales-filters" onSubmit={submit}>
       <label>De<input type="date" required value={from} onChange={(event) => setFrom(event.target.value)} /></label>
@@ -81,8 +84,8 @@ export default function ReportsPage({ dashboard = false }: { dashboard?: boolean
           ...(stockAlerts.empty ? [["Registros sem estoque", result.stock.empty] as [string, number]] : []),
           ...(stockAlerts.negative ? [["Registros com saldo negativo", result.stock.negative] as [string, number]] : []),
         ])} />}
-        {(!stockAlerts.low || !stockAlerts.empty || !stockAlerts.negative) && <p>Há alertas ocultos neste navegador. <Link to="/admin/configuracoes">Alterar preferências</Link></p>}
-        <div className="sales-filters"><Link to="/admin/vendas">Consultar vendas</Link><Link to="/admin/estoque">Gerenciar estoque</Link><Link to="/admin/relatorios">Ver relatórios</Link></div>
+        {(!stockAlerts.low || !stockAlerts.empty || !stockAlerts.negative) && <p>Há alertas ocultos neste navegador.{hasRoleAccess(roles, "settings") && <> <Link to="/admin/configuracoes">Alterar preferências</Link></>}</p>}
+        <nav className="quick-actions" aria-label="Atalhos administrativos"><Link to="/admin/vendas">Consultar vendas</Link><Link to="/admin/estoque">Gerenciar estoque</Link><Link to="/admin/relatorios">Ver relatórios</Link></nav>
       </> : <>
         <h2>Por forma de pagamento</h2>
         <div className="stock-table-wrap"><table className="stock-table"><thead><tr><th>Forma</th><th>Bruto</th><th>Reembolsado</th><th>Contestado</th><th>Líquido</th><th>Pagas</th><th>Canceladas</th><th>Estornadas</th><th>Contestadas</th></tr></thead><tbody>{result.report.methods.map((method) => <tr key={method.paymentMethod}><td>{methodLabel(method.paymentMethod)}</td><AmountCells amounts={method.amounts} /><td>{method.counts.paid}</td><td>{method.counts.cancelled}</td><td>{method.counts.refunded}</td><td>{method.counts.chargedBack}</td></tr>)}</tbody></table></div>

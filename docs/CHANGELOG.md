@@ -1,5 +1,23 @@
 # Histórico de versões
 
+## 1W — Expansão administrativa para múltiplas lojas — Homologada e publicada em HML
+
+- Configurações passa a cadastrar lojas com identificação automática, editar seus dados e controlar a situação ativa sem permitir exclusão.
+- Novas lojas começam inativas e sem duplicar documentos de estoque; os saldos continuam sendo criados sob demanda pelas movimentações existentes.
+- Uma loja com terminal ativo não pode ser desativada, e um terminal ativo precisa ser desativado antes de mudar de loja.
+- Estoque passa a permitir a seleção entre as lojas atribuídas ao usuário; administradores mantêm visão global.
+- Leituras diretas de lojas respeitam o escopo das custom claims, e escritas ficam restritas à Function `manageSettings`, com auditoria.
+- O painel administrativo recebe uma revisão visual completa: cabeçalhos, filtros, cartões, tabelas, estados, formulários e botões passam a seguir o mesmo alinhamento e comportamento responsivo.
+- Configurações passa a separar Alertas, Lojas e Terminais em seções visuais próprias; ações e formulários ficam organizados sem alterar os fluxos já validados.
+- Usuários passa a oferecer os perfis exclusivos `Administrador master` e `Administrador`: o master acessa todos os módulos, enquanto o administrador mantém acesso global às lojas e aos módulos operacionais, mas não acessa Configurações nem Auditoria.
+- Somente um master pode atribuir ou alterar o perfil master, impedindo que um administrador comum recupere indiretamente o acesso às configurações.
+- Papéis operacionais continuam restritos às lojas atribuídas, enquanto combinações de um perfil global com outros papéis ou lojas são rejeitadas pelo backend.
+- A fase reutiliza `manageSettings`; não cria Function, tarefa agendada, coleção ou índice composto.
+- Validação final em 10/09/2026: lint e builds de frontend e backend aprovados; sete testes de regras e 82 testes de negócio passaram sem falhas. O `diff-check` não encontrou erros e apresentou somente avisos de conversão LF/CRLF. Permanece a recomendação de desempenho do Vite para o pacote principal acima de 500 kB.
+- Publicação confirmada em `seolleda-dev` (HML): regras do Firestore, Hosting e dez Functions dependentes da hierarquia de papéis foram atualizados com sucesso (`manageAdminUsers`, `manageSettings`, `listSettingsAudit`, `manageProducts`, `manageInventory`, `listAdminSales`, `getAdminReport`, `managePayment`, `resolveSaleStock` e `reconcileSaleReservation`). Após a revisão final, o Hosting foi republicado isoladamente com o ajuste de navegação do administrador. As duas saídas confirmaram `Deploy complete`.
+- A conta `jpbelooo@gmail.com` foi promovida para `roles: ["master"]` no Firebase Authentication de HML, com remoção das claims administrativas legadas, das lojas atribuídas e revogação dos tokens de renovação.
+- Após a publicação e a renovação da sessão, o usuário confirmou a homologação funcional da 1W em HML em 10/09/2026.
+
 ## 1V.1 — Saneamento técnico dos avisos do frontend — Homologada e publicada em HML
 
 - O hook de autenticação passa a ficar separado do componente provedor, preservando o Fast Refresh durante o desenvolvimento.
@@ -265,6 +283,8 @@ Validação anterior do estoque: cinco testes simulados de estoque e 17 testes P
 
 ## Próximas versões
 
+- Fase atual: 1W — expansão administrativa para múltiplas lojas, homologada e publicada em HML.
+- Última versão funcional: 1W — múltiplas lojas, revisão visual e separação entre administrador master e administrador.
 - Último hotfix: 1V.1 — saneamento técnico dos avisos do frontend, homologado e publicado em HML; commit `1a2db9d` e tag `release-1v.1` confirmados.
-- Última versão funcional: 1V — gestão administrativa de usuários e permissões, homologada e publicada em HML; commit `e23ea16` e tag `release-1v` confirmados.
-- Versão anterior: 1U — fechamento financeiro e exportação de relatórios, homologada e publicada em HML; commit `e19c243` e tag `release-1u` confirmados.
+- Versão anterior: 1V — gestão administrativa de usuários e permissões, homologada e publicada em HML; commit `e23ea16` e tag `release-1v` confirmados.
+- Versão anterior à 1V: 1U — fechamento financeiro e exportação de relatórios, homologada e publicada em HML; commit `e19c243` e tag `release-1u` confirmados.

@@ -1,21 +1,52 @@
 rules_version = '2';
 
 service cloud.firestore {
+  // =============================================================
+  // Modelo assumido
+  // =============================================================
+  // products: catálogo, preços, situação e timestamps.
+  // productKeys: chaves únicas internas de SKU/código de barras.
+  // categories: nome normalizado, descrição, situação e timestamps.
+  // stores: nome (2–120), endereço (0–300), contato (0–120), situação e timestamps.
+  // terminals: nome, storeId, situação e timestamps.
+  // inventory: storeId, productId, quantidades física/reservada/mínima e timestamps.
+  // stockMovements: loja, produto, operação, saldos, motivo, autor e timestamp.
+  // sales: loja, terminal, cliente, itens, pagamento, reserva e timestamps.
+  // Demais coleções operacionais e de auditoria são exclusivas do backend.
+  // =============================================================
   match /databases/{database}/documents {
     function isAuthenticated() {
       return request.auth != null;
     }
 
-    function hasRole(role) {
+    function isMaster() {
       return isAuthenticated()
-        && (request.auth.token.admin == true
-          || (request.auth.token.roles is list && request.auth.token.roles.hasAny([role, 'admin'])));
+        && request.auth.token.roles is list
+        && request.auth.token.roles.hasAny(['master']);
+    }
+
+    function isAdministrator() {
+      return isAuthenticated()
+        && (('admin' in request.auth.token
+            && request.auth.token.admin == true)
+          || (request.auth.token.roles is list
+            && request.auth.token.roles.hasAny(['admin'])));
+    }
+
+    function hasRole(role) {
+      return isMaster()
+        || (isAdministrator() && role != 'settings')
+        || (!isAdministrator() && isAuthenticated()
+          && request.auth.token.roles is list
+          && request.auth.token.roles.hasAny([role]));
     }
 
     function hasStore(storeId) {
-      return isAuthenticated()
-        && (request.auth.token.admin == true
-          || (request.auth.token.storeIds is list && request.auth.token.storeIds.hasAny([storeId])));
+      return isMaster()
+        || isAdministrator()
+        || (isAuthenticated()
+          && request.auth.token.storeIds is list
+          && request.auth.token.storeIds.hasAny([storeId]));
     }
 
     function canCatalog() { return hasRole('catalog'); }
@@ -58,6 +89,26 @@ service cloud.firestore {
         && data.updatedAt is timestamp;
     }
 
+    function validCategory(data) {
+      return data.keys().hasOnly([
+          'name', 'normalizedName', 'description', 'active',
+          'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasAll([
+          'name', 'normalizedName', 'description', 'active',
+          'createdAt', 'updatedAt'
+        ])
+        && validString(data.name, 2, 120)
+        && validString(data.normalizedName, 2, 120)
+        && data.description is string
+        && data.description.size() <= 2000
+        && data.active is bool
+        && data.createdAt is timestamp
+        && data.updatedAt == request.time
+        && (resource == null
+          || data.createdAt == resource.data.createdAt);
+    }
+
     match /products/{productId} {
       allow read: if canCatalog() || canReports() || canInventory() || canSales();
       allow create, update, delete: if false;
@@ -69,36 +120,14 @@ service cloud.firestore {
 
     match /categories/{categoryId} {
       allow read: if canCatalog() || canReports() || canInventory() || canSales();
-      allow create, update: if canCatalog()
-        && request.resource.data.keys().hasOnly([
-          'name', 'normalizedName', 'description', 'active',
-          'createdAt', 'updatedAt'
-        ])
-        && validString(request.resource.data.name, 2, 120)
-        && validString(request.resource.data.normalizedName, 2, 120)
-        && request.resource.data.description is string
-        && request.resource.data.description.size() <= 2000
-        && request.resource.data.active is bool
-        && request.resource.data.createdAt is timestamp
-        && request.resource.data.updatedAt == request.time
-        && (resource == null
-          || request.resource.data.createdAt == resource.data.createdAt);
+      allow create, update: if canCatalog() && validCategory(request.resource.data);
       allow delete: if canCatalog();
     }
 
     match /stores/{storeId} {
-      allow read: if canSettings() || canInventory() || canReports();
-      allow create, update: if canSettings()
-        && request.resource.data.keys().hasOnly([
-          'name', 'active', 'createdAt', 'updatedAt'
-        ])
-        && validString(request.resource.data.name, 2, 120)
-        && request.resource.data.active is bool
-        && request.resource.data.createdAt is timestamp
-        && request.resource.data.updatedAt == request.time
-        && (resource == null
-          || request.resource.data.createdAt == resource.data.createdAt);
-      allow delete: if canSettings();
+      allow read: if canSettings()
+        || ((canInventory() || canReports()) && hasStore(storeId));
+      allow create, update, delete: if false;
     }
 
     match /inventory/{inventoryId} {

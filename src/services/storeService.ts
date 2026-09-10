@@ -1,41 +1,29 @@
 import {
   collection,
   doc,
+  getDoc,
   getDocs,
-  limit,
-  query,
-  runTransaction,
-  serverTimestamp,
-  where,
 } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import type { Store } from "../types/store";
 
 const storesCollection = collection(db, "stores");
+const validStoreId = /^[A-Za-z0-9_-]{1,128}$/;
 
-export async function getOrCreateDefaultStore(): Promise<Store> {
-  const existingSnapshot = await getDocs(
-    query(storesCollection, where("name", "==", "Loja Principal"), limit(1)),
+export async function listAccessibleStores(globalAccess: boolean, assignedStoreIds: string[]): Promise<Store[]> {
+  const snapshots = globalAccess ? (await getDocs(storesCollection)).docs : await Promise.all(
+    [...new Set(assignedStoreIds)].filter((id) => validStoreId.test(id)).slice(0, 30)
+      .map((id) => getDoc(doc(storesCollection, id))),
   );
-  if (!existingSnapshot.empty) {
-    const storeDocument = existingSnapshot.docs[0];
-    return { id: storeDocument.id, ...storeDocument.data() } as Store;
-  }
-
-  const defaultStoreReference = doc(db, "stores", "default-store");
-  return runTransaction(db, async (transaction) => {
-    const storeDocument = await transaction.get(defaultStoreReference);
-    if (storeDocument.exists()) {
-      return { id: storeDocument.id, ...storeDocument.data() } as Store;
-    }
-
-    const store = {
-      name: "Loja Principal",
-      active: true,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    };
-    transaction.set(defaultStoreReference, store);
-    return { id: defaultStoreReference.id, ...store } as Store;
-  });
+  return snapshots.flatMap((snapshot) => {
+    if (!snapshot.exists()) return [];
+    const data = snapshot.data();
+    return [{
+      id: snapshot.id,
+      name: typeof data.name === "string" ? data.name : snapshot.id,
+      active: data.active === true,
+      createdAt: data.createdAt ?? null,
+      updatedAt: data.updatedAt ?? null,
+    } as Store];
+  }).sort((left, right) => left.name.localeCompare(right.name, "pt-BR"));
 }

@@ -2,6 +2,7 @@ import { NavLink } from "react-router-dom";
 import { adminNavigation } from "../lib/routes";
 import BrandLogo from "./BrandLogo";
 import { useAuth } from "../contexts/useAuth";
+import { hasRoleAccess } from "../lib/adminRoles";
 
 type SidebarProps = {
   onLogout: () => Promise<void>;
@@ -9,7 +10,7 @@ type SidebarProps = {
 
 function Sidebar({ onLogout }: SidebarProps) {
   const { roles } = useAuth();
-  const canSee = (item: (typeof adminNavigation)[number]) => !item.roles?.length || roles.includes("admin") || item.roles.some((role) => roles.includes(role));
+  const canSee = (item: (typeof adminNavigation)[number]) => !item.roles?.length || item.roles.some((role) => hasRoleAccess(roles, role));
   return (
     <aside className="sidebar">
       <div className="brand">

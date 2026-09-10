@@ -135,19 +135,21 @@ function CategoriesPage() {
           className="primary-action"
           onClick={openCreateModal}
         >
-          + Nova categoria
+          Nova categoria
         </button>
       </div>
 
       <div className="categories-toolbar">
-        <label htmlFor="category-search">Buscar categorias</label>
-        <input
-          id="category-search"
-          type="search"
-          placeholder="Buscar pelo nome"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-        />
+        <label htmlFor="category-search">
+          Buscar categorias
+          <input
+            id="category-search"
+            type="search"
+            placeholder="Buscar pelo nome"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+          />
+        </label>
       </div>
 
       {pageError && (
