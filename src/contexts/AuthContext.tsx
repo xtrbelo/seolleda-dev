@@ -6,7 +6,7 @@ import {
   type ReactNode,
 } from "react";
 import {
-  onAuthStateChanged,
+  onIdTokenChanged,
   getIdTokenResult,
   signInWithEmailAndPassword,
   signOut,
@@ -36,15 +36,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [storeIds, setStoreIds] = useState<string[]>([]);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (authenticatedUser) => {
+    const unsubscribe = onIdTokenChanged(auth, (authenticatedUser) => {
       setUser(authenticatedUser);
       if (!authenticatedUser) { setRoles([]); setStoreIds([]); setLoading(false); return; }
       void getIdTokenResult(authenticatedUser).then((result) => {
+        if (auth.currentUser?.uid !== authenticatedUser.uid) return;
         const claimRoles = Array.isArray(result.claims.roles) ? result.claims.roles : [];
         setRoles(result.claims.admin === true ? ["admin"] : claimRoles.filter((role): role is string => typeof role === "string"));
         setStoreIds(Array.isArray(result.claims.storeIds) ? result.claims.storeIds.filter((storeId): storeId is string => typeof storeId === "string") : []);
         setLoading(false);
-      }).catch(() => { setRoles([]); setStoreIds([]); setLoading(false); });
+      }).catch(() => {
+        if (auth.currentUser?.uid !== authenticatedUser.uid) return;
+        setRoles([]); setStoreIds([]); setLoading(false);
+      });
     });
 
     return unsubscribe;

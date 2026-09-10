@@ -1,5 +1,18 @@
 # Histórico de versões
 
+## 1V — Gestão administrativa de usuários e permissões — Homologada e publicada em HML
+
+- Administradores podem listar contas do Firebase Authentication em páginas de até 100 e pesquisar os resultados já carregados no navegador.
+- Contas internas são criadas sem senha inicial e recebem convite por redefinição de senha; nenhuma senha é armazenada ou exibida pelo Seolleda.
+- Papéis administrativos, lojas atribuídas e situação ativa da conta podem ser alterados, com revogação dos tokens de renovação após mudanças.
+- Somente administradores acessam a tela e a nova callable; além do token apresentado, a Function confirma as claims atuais e a situação ativa do autor diretamente no Authentication.
+- O usuário atual não pode alterar os próprios papéis nem desativar a própria conta, evitando bloqueio acidental do administrador em uso.
+- O contexto de autenticação acompanha renovações do ID token para refletir papéis atualizados na navegação assim que novas claims forem emitidas.
+- Contas e permissões continuarão centralizadas no Firebase Authentication e em custom claims, sem duplicação no Firestore.
+- Validação local enviada pelo usuário em 10/09/2026: builds de frontend e backend aprovados, lints sem erros, seis testes de regras e 76 testes de negócio aprovados. O `diff-check` não encontrou erros e mostrou somente avisos de conversão LF/CRLF. Permanecem os sete avisos conhecidos do frontend, reservados para saneamento técnico posterior.
+- Publicação confirmada em `seolleda-dev` (HML): a Function `manageAdminUsers` foi criada em `southamerica-east1` e o Hosting foi publicado. A saída enviada confirmou sucesso nos dois alvos e `Deploy complete`.
+- Após a publicação, o usuário executou o roteiro funcional e confirmou a homologação da 1V em HML em 10/09/2026. Commit e tag de fechamento permanecem pendentes.
+
 ## 1U — Fechamento financeiro e exportação de relatórios — Homologada e publicada em HML
 
 - Totais financeiros bruto, reembolsado e líquido, separados por Pix e cartão e consolidados por dia e loja.
@@ -240,6 +253,6 @@ Validação anterior do estoque: cinco testes simulados de estoque e 17 testes P
 
 ## Próximas versões
 
-- Fase atual: 1T — reembolsos e devoluções parciais, em desenvolvimento.
-- Última versão: hotfix 1S.1 — contenção de custos Firebase, homologado e publicado em HML; commit `d7ee849` e tag `release-1s.1` confirmados.
-- Fase anterior: 1S homologada e publicada em HML; commit `c44f283`, tag `release-1s` confirmada.
+- Última versão funcional: 1V — gestão administrativa de usuários e permissões, homologada e publicada em HML; fechamento do repositório pendente.
+- Próxima manutenção: sanear os sete avisos conhecidos do frontend após o fechamento da 1V, sem misturar as alterações ao commit da fase.
+- Versão anterior: 1U — fechamento financeiro e exportação de relatórios, homologada e publicada em HML; commit `e19c243` e tag `release-1u` confirmados.

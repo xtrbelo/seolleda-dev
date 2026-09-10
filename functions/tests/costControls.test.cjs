@@ -33,5 +33,5 @@ test("global cost controls are registered before every function", () => {
     maxInstances: 3,
     enforceAppCheck: true,
   });
-  assert.equal(events.length, 17);
+  assert.equal(events.length, 18);
 });

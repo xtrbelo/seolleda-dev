@@ -9,4 +9,5 @@ export const adminNavigation: NavigationItem[] = [
   { label: "Relatórios", to: "/admin/relatorios", roles: ["reports"] },
   { label: "Configurações", to: "/admin/configuracoes", roles: ["settings"] },
   { label: "Auditoria", to: "/admin/auditoria", roles: ["settings"] },
+  { label: "Usuários", to: "/admin/usuarios", roles: ["admin"] },
 ];
