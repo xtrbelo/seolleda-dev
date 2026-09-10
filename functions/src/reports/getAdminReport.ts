@@ -6,7 +6,13 @@ import {claimStoreIds, hasRole, requireAnyRole} from "../auth/roles.js";
 
 const MAX_RANGE_MS = 94 * 86400000;
 const MAX_SALES = 1000;
+const ID = /^[A-Za-z0-9_-]{1,128}$/;
 const LOCAL_DATE = new Intl.DateTimeFormat("en-CA", {timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit"});
+type PaymentMethod = "PIX" | "CARD" | "UNKNOWN";
+type Amounts = {gross: number; refunded: number; disputed: number; net: number};
+type Counts = {paid: number; cancelled: number; refunded: number; chargedBack: number};
+type Breakdown = {amounts: Amounts; counts: Counts};
+type ReportRow = Breakdown & {day: string; storeId: string; paymentMethod: PaymentMethod};
 
 /** Validate a positive millisecond timestamp.
  * @param {unknown} value Candidate timestamp.
@@ -37,6 +43,61 @@ function situation(sale: Record<string, unknown>, now: number): string {
   return sale.status === "EXPIRED" ? "expired" : "other";
 }
 
+/** Normalize the persisted payment method for filters and breakdowns.
+ * @param {unknown} value Persisted payment method.
+ * @return {PaymentMethod} Known report method.
+ */
+function paymentMethod(value: unknown): PaymentMethod {
+  return value === "PIX" || value === "CARD" ? value : "UNKNOWN";
+}
+
+/** Create an empty financial accumulator.
+ * @return {Breakdown} Empty accumulator.
+ */
+function emptyBreakdown(): Breakdown {
+  return {amounts: {gross: 0, refunded: 0, disputed: 0, net: 0}, counts: {paid: 0, cancelled: 0, refunded: 0, chargedBack: 0}};
+}
+
+/** Return confirmed amounts for one sale. Review-only payments never contribute.
+ * @param {Record<string, unknown>} sale Sale data.
+ * @return {Amounts} Confirmed amounts in cents.
+ */
+function saleAmounts(sale: Record<string, unknown>): Amounts {
+  const empty = {gross: 0, refunded: 0, disputed: 0, net: 0};
+  if (sale.paymentReconciliationRequired === true || sale.status === "PAYMENT_REVIEW_REQUIRED") return empty;
+  const total = Number(sale.totalCents ?? 0);
+  if (!Number.isSafeInteger(total) || total <= 0) return empty;
+  const partial = Number(sale.partialRefundedCents ?? 0);
+  const partialRefunded = Number.isSafeInteger(partial) && partial > 0 ? Math.min(partial, total) : 0;
+  if (sale.status === "PAID" && sale.paymentStatus === "APPROVED") {
+    return {gross: total, refunded: partialRefunded, disputed: 0, net: total - partialRefunded};
+  }
+  const wasConfirmed = sale.paidAt instanceof Timestamp || sale.reservationStatus === "CONSUMED";
+  if (!wasConfirmed) return empty;
+  if (sale.status === "REFUNDED") return {gross: total, refunded: total, disputed: 0, net: 0};
+  if (sale.status === "CHARGED_BACK") {
+    const disputed = total - partialRefunded;
+    return {gross: total, refunded: partialRefunded, disputed, net: 0};
+  }
+  return empty;
+}
+
+/** Add one sale to a financial accumulator.
+ * @param {Breakdown} target Mutable accumulator.
+ * @param {Record<string, unknown>} sale Sale data.
+ */
+function addSale(target: Breakdown, sale: Record<string, unknown>): void {
+  const amounts = saleAmounts(sale);
+  target.amounts.gross += amounts.gross;
+  target.amounts.refunded += amounts.refunded;
+  target.amounts.disputed += amounts.disputed;
+  target.amounts.net += amounts.net;
+  if (sale.status === "PAID") target.counts.paid++;
+  else if (sale.status === "CANCELLED") target.counts.cancelled++;
+  else if (sale.status === "REFUNDED") target.counts.refunded++;
+  else if (sale.status === "CHARGED_BACK") target.counts.chargedBack++;
+}
+
 export const getAdminReport = onCall({region: "southamerica-east1"}, async (request) => {
   requireAnyRole(request, ["reports", "inventory"]);
   const data = request.data as Record<string, unknown> | null;
@@ -44,34 +105,46 @@ export const getAdminReport = onCall({region: "southamerica-east1"}, async (requ
   const untilMs = milliseconds(data?.untilMs);
   if (untilMs <= fromMs || untilMs - fromMs > MAX_RANGE_MS) throw new HttpsError("invalid-argument", "Selecione um período de até 93 dias.");
   const includeStock = data?.includeStock === true;
+  const selectedStore = data?.storeId;
+  if (selectedStore !== undefined && (typeof selectedStore !== "string" || !ID.test(selectedStore))) throw new HttpsError("invalid-argument", "Loja inválida.");
+  const selectedMethod = data?.paymentMethod;
+  if (selectedMethod !== undefined && selectedMethod !== "PIX" && selectedMethod !== "CARD") throw new HttpsError("invalid-argument", "Forma de pagamento inválida.");
   const admin = hasRole(request, "admin");
   const storeIds = claimStoreIds(request);
   if (!admin && (storeIds.length === 0 || storeIds.length > 30)) throw new HttpsError("permission-denied", "Nenhuma loja foi atribuída a este usuário.");
+  if (!admin && typeof selectedStore === "string" && !storeIds.includes(selectedStore)) throw new HttpsError("permission-denied", "Você não tem acesso a esta loja.");
   let salesQuery = firestore.collection("sales").where("createdAt", ">=", Timestamp.fromMillis(fromMs)).where("createdAt", "<", Timestamp.fromMillis(untilMs));
-  if (!admin) {
-    salesQuery = salesQuery.where("storeId", "in", storeIds);
-  }
+  if (!admin) salesQuery = salesQuery.where("storeId", "in", storeIds);
   const salesSnapshot = await salesQuery.orderBy("createdAt", "desc").limit(MAX_SALES + 1).get();
   if (salesSnapshot.size > MAX_SALES) throw new HttpsError("resource-exhausted", "Reduza o período para obter um relatório completo.");
-  const sales = salesSnapshot.docs.map((doc) => doc.data());
+  const allSales = salesSnapshot.docs.map((doc) => doc.data());
+  const availableStores = [...new Set(allSales.map((sale) => String(sale.storeId ?? "")).filter((value) => ID.test(value)))].sort();
+  const sales = allSales.filter((sale) =>
+    (selectedStore === undefined || sale.storeId === selectedStore) &&
+    (selectedMethod === undefined || paymentMethod(sale.paymentMethod) === selectedMethod));
   const now = Date.now();
-  const paid = sales.filter((sale) => sale.status === "PAID" && sale.paymentStatus === "APPROVED" && sale.paymentReconciliationRequired !== true);
-  const days = new Map<string, {day: string; count: number; total: number}>();
+  const summary = emptyBreakdown();
+  const rows = new Map<string, ReportRow>();
+  const days = new Map<string, Breakdown & {day: string}>();
+  const stores = new Map<string, Breakdown & {storeId: string}>();
+  const methods = new Map<PaymentMethod, Breakdown & {paymentMethod: PaymentMethod}>();
   const products = new Map<string, {id: string; name: string; quantity: number; total: number}>();
-  let revenue = 0;
   let units = 0;
-  for (const sale of paid) {
-    const refundedCents = Number(sale.partialRefundedCents ?? 0);
-    const netTotal = Math.max(0, Number(sale.totalCents ?? 0) - (Number.isSafeInteger(refundedCents) ? refundedCents : 0));
-    revenue += netTotal;
+  for (const sale of sales) {
+    addSale(summary, sale);
     if (sale.createdAt instanceof Timestamp) {
       const day = dayKey(sale.createdAt);
-      const entry = days.get(day) ?? {day, count: 0, total: 0};
-      entry.count++;
-      entry.total += netTotal;
-      days.set(day, entry);
+      const storeId = String(sale.storeId ?? "");
+      const method = paymentMethod(sale.paymentMethod);
+      const dayEntry = days.get(day) ?? {...emptyBreakdown(), day};
+      const storeEntry = stores.get(storeId) ?? {...emptyBreakdown(), storeId};
+      const methodEntry = methods.get(method) ?? {...emptyBreakdown(), paymentMethod: method};
+      const rowKey = `${day}\u0000${storeId}\u0000${method}`;
+      const row = rows.get(rowKey) ?? {...emptyBreakdown(), day, storeId, paymentMethod: method};
+      addSale(dayEntry, sale); addSale(storeEntry, sale); addSale(methodEntry, sale); addSale(row, sale);
+      days.set(day, dayEntry); stores.set(storeId, storeEntry); methods.set(method, methodEntry); rows.set(rowKey, row);
     }
-    if (Array.isArray(sale.items)) {
+    if (sale.status === "PAID" && sale.paymentStatus === "APPROVED" && sale.paymentReconciliationRequired !== true && Array.isArray(sale.items)) {
       for (const rawItem of sale.items) {
         const item = rawItem as Record<string, unknown>;
         const id = String(item.productId ?? "");
@@ -91,14 +164,19 @@ export const getAdminReport = onCall({region: "southamerica-east1"}, async (requ
       }
     }
   }
+  const paid = summary.counts.paid;
   const report = {
-    total: sales.length, paid: paid.length, revenue, units,
-    average: paid.length ? revenue / paid.length : 0,
+    total: sales.length, paid, revenue: summary.amounts.net, units,
+    average: paid ? summary.amounts.net / paid : 0,
     pending: sales.filter((sale) => situation(sale, now) === "pending").length,
     expired: sales.filter((sale) => situation(sale, now) === "expired").length,
     review: sales.filter((sale) => situation(sale, now) === "review").length,
     stockReview: sales.filter((sale) => sale.stockReconciliationRequired === true).length,
+    amounts: summary.amounts, counts: summary.counts, availableStores,
     days: [...days.values()].sort((a, b) => a.day.localeCompare(b.day)),
+    stores: [...stores.values()].sort((a, b) => a.storeId.localeCompare(b.storeId)),
+    methods: [...methods.values()].sort((a, b) => a.paymentMethod.localeCompare(b.paymentMethod)),
+    rows: [...rows.values()].sort((a, b) => a.day.localeCompare(b.day) || a.storeId.localeCompare(b.storeId) || a.paymentMethod.localeCompare(b.paymentMethod)),
     products: [...products.values()].sort((a, b) => b.quantity - a.quantity || a.name.localeCompare(b.name)),
   };
   if (!includeStock) return {report};
