@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { listAdminSales, managePayment, saleSituation, type AdminSale, type SalesCursor, type PaymentAction } from "../services/adminSalesService";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../contexts/useAuth";
 import SaleStockResolution from "../components/SaleStockResolution";
 import SaleReservationReconciliation from "../components/SaleReservationReconciliation";
 
@@ -87,7 +87,7 @@ export default function SalesPage() {
     } finally { setOperating(false); }
   }
 
-  async function load(range: typeof period, after?: SalesCursor) {
+  async function load(range: typeof period, after?: SalesCursor, isActive = () => true) {
     const id = ++requestId.current;
     setLoading(true);
     setError("");
@@ -96,21 +96,22 @@ export default function SalesPage() {
       const end = new Date(`${range.until}T00:00:00`);
       end.setDate(end.getDate() + 1);
       const result = await listAdminSales(start, end, after);
-      if (id !== requestId.current) return;
+      if (id !== requestId.current || !isActive()) return;
       setSales((previous) => after ? [...previous, ...result.sales.filter((sale) => !previous.some((item) => item.id === sale.id))] : result.sales);
       setCursor(result.cursor);
       setHasMore(result.hasMore);
       setNow(Date.now());
     } catch {
-      if (id === requestId.current) setError("Não foi possível consultar as vendas. Verifique sua conexão e tente novamente.");
+      if (id === requestId.current && isActive()) setError("Não foi possível consultar as vendas. Verifique sua conexão e tente novamente.");
     } finally {
-      if (id === requestId.current) setLoading(false);
+      if (id === requestId.current && isActive()) setLoading(false);
     }
   }
 
   useEffect(() => {
-    void load(period);
-    return () => { requestId.current++; };
+    let active = true;
+    void load(period, undefined, () => active);
+    return () => { active = false; };
   }, [period]);
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 30000);

@@ -23,6 +23,14 @@ const emptyForm = {
 
 type ProductForm = typeof emptyForm;
 
+async function fetchProductData() {
+  const [products, categories] = await Promise.all([
+    listProducts(),
+    listCategories(),
+  ]);
+  return {products, categories: categories.filter((category) => category.active)};
+}
+
 function formatPrice(value: number) {
   return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
@@ -73,12 +81,9 @@ function ProductsPage() {
 
   async function loadData() {
     try {
-      const [loadedProducts, loadedCategories] = await Promise.all([
-        listProducts(),
-        listCategories(),
-      ]);
-      setProducts(loadedProducts);
-      setCategories(loadedCategories.filter((category) => category.active));
+      const loaded = await fetchProductData();
+      setProducts(loaded.products);
+      setCategories(loaded.categories);
     } catch {
       setPageError(
         "Não foi possível carregar os produtos e categorias. Tente novamente.",
@@ -89,7 +94,17 @@ function ProductsPage() {
   }
 
   useEffect(() => {
-    void loadData();
+    let active = true;
+    void fetchProductData().then((loaded) => {
+      if (!active) return;
+      setProducts(loaded.products);
+      setCategories(loaded.categories);
+    }).catch(() => {
+      if (active) setPageError("Não foi possível carregar os produtos e categorias. Tente novamente.");
+    }).finally(() => {
+      if (active) setIsLoading(false);
+    });
+    return () => { active = false; };
   }, []);
 
   const filteredProducts = useMemo(() => {

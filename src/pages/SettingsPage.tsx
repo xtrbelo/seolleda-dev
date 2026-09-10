@@ -30,7 +30,17 @@ export default function SettingsPage() {
     catch { setError("Não foi possível carregar as configurações. Verifique se a função manageSettings foi publicada em HML."); }
     finally { setLoading(false); }
   }
-  useEffect(() => { void refresh(); }, []);
+  useEffect(() => {
+    let active = true;
+    void getSettings().then((settings) => {
+      if (active) setData(settings);
+    }).catch(() => {
+      if (active) setError("Não foi possível carregar as configurações. Verifique se a função manageSettings foi publicada em HML.");
+    }).finally(() => {
+      if (active) setLoading(false);
+    });
+    return () => { active = false; };
+  }, []);
   async function submit(event: FormEvent, kind: "store" | "terminal") {
     event.preventDefault(); setSaving(true); setError(""); setNotice("");
     try {

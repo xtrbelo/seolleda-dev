@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../contexts/useAuth";
 import {
   listInventory,
   listStockMovements,
@@ -44,6 +44,15 @@ function statusFor(quantity: number, minimumQuantity: number, preferences: Stock
   return { label: "Normal", className: "stock-normal" };
 }
 
+async function fetchStockData() {
+  const store = await getOrCreateDefaultStore();
+  const [products, inventory] = await Promise.all([
+    listProducts(),
+    listInventory(store.id),
+  ]);
+  return {storeId: store.id, products, inventory};
+}
+
 function StockPage() {
   const stockAlerts = useStockAlertPreferences();
   const { user } = useAuth();
@@ -67,14 +76,10 @@ function StockPage() {
 
   async function loadData() {
     try {
-      const store = await getOrCreateDefaultStore();
-      const [loadedProducts, loadedInventory] = await Promise.all([
-        listProducts(),
-        listInventory(store.id),
-      ]);
-      setStoreId(store.id);
-      setProducts(loadedProducts);
-      setInventory(loadedInventory);
+      const loaded = await fetchStockData();
+      setStoreId(loaded.storeId);
+      setProducts(loaded.products);
+      setInventory(loaded.inventory);
       setPageError("");
     } catch {
       setPageError("Não foi possível carregar o estoque. Tente novamente.");
@@ -84,7 +89,19 @@ function StockPage() {
   }
 
   useEffect(() => {
-    void loadData();
+    let active = true;
+    void fetchStockData().then((loaded) => {
+      if (!active) return;
+      setStoreId(loaded.storeId);
+      setProducts(loaded.products);
+      setInventory(loaded.inventory);
+      setPageError("");
+    }).catch(() => {
+      if (active) setPageError("Não foi possível carregar o estoque. Tente novamente.");
+    }).finally(() => {
+      if (active) setIsLoading(false);
+    });
+    return () => { active = false; };
   }, []);
 
   const filteredProducts = useMemo(() => {

@@ -33,6 +33,7 @@ A fonte única da versão exibida é src/lib/appVersion.ts. A versão técnica 0
 | 1T | Reembolsos e devoluções parciais | Homologada e publicada em HML; commit `56c9b8c` e tag `release-1t` confirmados |
 | 1U | Fechamento financeiro e exportação de relatórios | Homologada e publicada em HML; commit `e19c243` e tag `release-1u` confirmados |
 | 1V | Gestão administrativa de usuários e permissões | Homologada e publicada em HML; commit `e23ea16` e tag `release-1v` confirmados |
+| 1V.1 | Saneamento técnico dos avisos do frontend | Homologada e publicada em HML; fechamento do repositório pendente |
 
 Não tratar fases planejadas como implementadas. A identificação 1A foi adotada e publicada em 07/09/2026. Histórico em docs/CHANGELOG.md.
 

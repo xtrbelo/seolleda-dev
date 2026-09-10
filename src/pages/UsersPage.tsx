@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../contexts/useAuth";
 import { ADMIN_ROLES, createAdminUser, listAdminUsers, sendAdminUserAccess, updateAdminUser, type AdminRole, type AdminUser, type AdminUserInput } from "../services/adminUserService";
 import { getSettings, type StoreSettings } from "../services/settingsService";
 

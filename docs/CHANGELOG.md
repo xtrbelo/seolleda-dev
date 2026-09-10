@@ -1,5 +1,15 @@
 # Histórico de versões
 
+## 1V.1 — Saneamento técnico dos avisos do frontend — Homologada e publicada em HML
+
+- O hook de autenticação passa a ficar separado do componente provedor, preservando o Fast Refresh durante o desenvolvimento.
+- Carregamentos iniciais de auditoria, categorias, configurações, produtos e estoque passam a ignorar respostas após a desmontagem da tela, sem criar novas consultas.
+- A invalidação da consulta de vendas deixa de acessar diretamente o `ref` no retorno do efeito, mantendo a proteção contra respostas antigas.
+- O hotfix não altera regras, Functions, dados, permissões ou fluxos funcionais; seu objetivo é zerar os sete avisos conhecidos do lint do frontend.
+- Validação enviada pelo usuário em 10/09/2026: lint do frontend aprovado com zero erros e zero avisos, e build concluído com sucesso. Permanece somente a recomendação de desempenho do Vite para o pacote principal acima de 500 kB, fora do escopo deste hotfix.
+- Publicação confirmada em `seolleda-dev` (HML): somente o Hosting foi publicado, com `release complete` e `Deploy complete` na saída enviada pelo usuário.
+- Após a publicação, o usuário confirmou a homologação funcional da 1V.1 em HML em 10/09/2026. Commit e tag de fechamento permanecem pendentes.
+
 ## 1V — Gestão administrativa de usuários e permissões — Homologada e publicada em HML
 
 - Administradores podem listar contas do Firebase Authentication em páginas de até 100 e pesquisar os resultados já carregados no navegador.
@@ -254,6 +264,6 @@ Validação anterior do estoque: cinco testes simulados de estoque e 17 testes P
 
 ## Próximas versões
 
+- Hotfix atual: 1V.1 — saneamento técnico dos avisos do frontend, homologado e publicado em HML; fechamento do repositório pendente.
 - Última versão funcional: 1V — gestão administrativa de usuários e permissões, homologada e publicada em HML; commit `e23ea16` e tag `release-1v` confirmados.
-- Próxima manutenção: sanear os sete avisos conhecidos do frontend após o fechamento da 1V, sem misturar as alterações ao commit da fase.
 - Versão anterior: 1U — fechamento financeiro e exportação de relatórios, homologada e publicada em HML; commit `e19c243` e tag `release-1u` confirmados.

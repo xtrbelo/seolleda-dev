@@ -1,7 +1,7 @@
 import { NavLink } from "react-router-dom";
 import { adminNavigation } from "../lib/routes";
 import BrandLogo from "./BrandLogo";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../contexts/useAuth";
 
 type SidebarProps = {
   onLogout: () => Promise<void>;

@@ -36,7 +36,15 @@ function CategoriesPage() {
   }
 
   useEffect(() => {
-    void loadCategories();
+    let active = true;
+    void listCategories().then((loadedCategories) => {
+      if (active) setCategories(loadedCategories);
+    }).catch(() => {
+      if (active) setPageError("Não foi possível carregar as categorias. Tente novamente.");
+    }).finally(() => {
+      if (active) setIsLoading(false);
+    });
+    return () => { active = false; };
   }, []);
 
   const filteredCategories = useMemo(() => {
