@@ -10,6 +10,7 @@
 - Validação local enviada pelo usuário em 10/09/2026: lint e build de frontend e backend aprovados; seis testes de regras e 72 testes de negócio passaram, incluindo os três testes da 1U. O diff-check não encontrou erros e mostrou somente avisos de conversão LF/CRLF. Permanecem os sete avisos conhecidos do frontend e o aviso de tamanho do pacote, sem erros novos.
 - Publicação confirmada em `seolleda-dev` (HML): `getAdminReport` foi atualizada em `southamerica-east1` e o Hosting foi publicado. A saída enviada confirmou sucesso nos dois alvos e `Deploy complete`.
 - Após a publicação, o usuário executou o roteiro funcional e confirmou a homologação da 1U em HML em 10/09/2026.
+- Fechamento concluído: commit `e19c243` enviado à `main` e tag `release-1u` publicada no repositório remoto.
 
 ## 1T — Reembolsos e devoluções parciais — Homologada e publicada em HML
 
