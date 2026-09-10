@@ -10,7 +10,8 @@
 - A fase reutiliza `managePayment`, `mercadoPagoWebhook`, `resolveSaleStock`, `listAdminSales` e `getAdminReport`; nenhuma nova Function ou tarefa agendada foi criada.
 - Validação enviada pelo usuário em 09/09/2026: lint e build de frontend e backend aprovados; lint frontend com os sete avisos conhecidos; 70 testes de negócio e seis testes de regras aprovados. O diff-check passou somente com avisos de conversão LF/CRLF; as mensagens `PERMISSION_DENIED` do emulador correspondem aos bloqueios esperados.
 - Publicação confirmada em `seolleda-dev` (HML): cinco Functions foram atualizadas em `southamerica-east1` (`managePayment`, `mercadoPagoWebhook`, `listAdminSales`, `resolveSaleStock` e `getAdminReport`) e o Hosting foi publicado. A saída enviada confirmou sucesso individual em todos os alvos e `Deploy complete`.
-- Após a publicação, o usuário executou o roteiro funcional e confirmou a homologação da 1T em HML. Commit e tag de fechamento ainda pendentes.
+- Após a publicação, o usuário executou o roteiro funcional e confirmou a homologação da 1T em HML.
+- Fechamento concluído: commit `56c9b8c` enviado à `main` e tag `release-1t` publicada no repositório remoto.
 
 ## 1S.1 — Contenção de custos Firebase — Homologada e publicada em HML
 

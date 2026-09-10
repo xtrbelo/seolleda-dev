@@ -30,7 +30,7 @@ A fonte única da versão exibida é src/lib/appVersion.ts. A versão técnica 0
 | 1R | Devoluções e resolução de pendências de estoque | Homologada e publicada em HML; Functions e Hosting confirmados |
 | 1S | Conciliação de reservas de estoque inconsistentes | Homologada e publicada em HML; commit `c44f283` e tag `release-1s` confirmados |
 | 1S.1 | Contenção de custos Firebase | Homologada e publicada em HML; commit `d7ee849` e tag `release-1s.1` confirmados |
-| 1T | Reembolsos e devoluções parciais | Homologada e publicada em HML; fechamento Git pendente |
+| 1T | Reembolsos e devoluções parciais | Homologada e publicada em HML; commit `56c9b8c` e tag `release-1t` confirmados |
 
 Não tratar fases planejadas como implementadas. A identificação 1A foi adotada e publicada em 07/09/2026. Histórico em docs/CHANGELOG.md.
 
