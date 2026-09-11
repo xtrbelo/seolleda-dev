@@ -72,7 +72,13 @@ function CardPayment({
         const mp = new MercadoPago(publicKey, {locale: "pt-BR"});
         controllerRef.current = await mp.bricks().create("cardPayment", "card-payment-brick", {
           initialization: {amount: totalCents / 100},
-          customization: {paymentMethods: {minInstallments: 1, maxInstallments: 12}},
+          customization: {
+            paymentMethods: {
+              minInstallments: 1,
+              maxInstallments: 1,
+              types: {excluded: ["debit_card", "prepaid_card"]},
+            },
+          },
           callbacks: {
             onReady: () => setMessage("Informe os dados do cartão para continuar."),
             onError: () => setMessage("Não foi possível carregar o formulário. Tente novamente."),
@@ -82,7 +88,6 @@ function CardPayment({
               const token = typeof data.token === "string" ? data.token : "";
               const paymentMethodId = typeof data.payment_method_id === "string" ?
                 data.payment_method_id : "";
-              const installments = Number(data.installments);
               const issuerId = data.issuer_id === undefined || data.issuer_id === null ?
                 undefined : Number(data.issuer_id);
               const payerEmail = typeof payer?.email === "string" ? payer.email : customerEmail;
@@ -90,7 +95,7 @@ function CardPayment({
               setMessage("Processando pagamento...");
               try {
                 const result = await createCardPayment({
-                  saleId, token, paymentMethodId, installments, issuerId, payerEmail,
+                  saleId, token, paymentMethodId, issuerId, payerEmail,
                 });
                 if (["rejected", "cancelled", "refunded"].includes(result.status)) {
                   throw new Error("O cartão foi recusado. Inicie uma nova compra para tentar novamente.");
@@ -165,7 +170,7 @@ function CardPayment({
   return (
     <div className="card-payment-flow">
       <p role="status">{message}</p>
-      <div id="card-payment-brick" aria-label="Pagamento com cartão" />
+      <div id="card-payment-brick" aria-label="Pagamento à vista com cartão de crédito" />
     </div>
   );
 }

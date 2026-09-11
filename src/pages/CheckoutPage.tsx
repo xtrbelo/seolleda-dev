@@ -527,7 +527,7 @@ function CheckoutPage() {
                     onClick={() => setShowCardFlow(true)}
                   >
                     <strong>CARTÃO</strong>
-                    <span>Crédito em até 12x</span>
+                    <span>Crédito à vista · 1x</span>
                   </button>
                 </div>
                 <button
@@ -560,7 +560,7 @@ function CheckoutPage() {
             ) : (
               <>
                 <span className="eyebrow">Pagamento</span>
-                <h2 id="payment-title">Cartão de crédito</h2>
+                <h2 id="payment-title">Cartão de crédito à vista</h2>
                 <CardPayment
                   saleId={saleId}
                   statusToken={saleStatusToken}

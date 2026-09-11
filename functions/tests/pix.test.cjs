@@ -395,18 +395,25 @@ test("transaction failure leaves no partial stock mutation", async () => {
   assert.equal(f.movementCount(), 1);
 });
 
-test("card payment uses the server total and tokenized provider payload", async () => {
+test("card payment uses the server total and a single installment", async () => {
   const f = fixture();
-  const result = await f.createCard({totalCents: 1, installments: 3});
+  const result = await f.createCard({totalCents: 1});
   assert.equal(result.status, "pending");
   assert.equal(f.sale().paymentMethod, "CARD");
   assert.equal(f.http.filter((call) => call.method === "POST").length, 1);
   const body = JSON.parse(f.http[0].body);
   assert.equal(body.transaction_amount, 12.5);
-  assert.equal(body.installments, 3);
+  assert.equal(body.installments, 1);
   assert.equal(body.payment_method_id, "visa");
   assert.equal(body.token, "tokenized-card-token");
   assert.equal(body.external_reference, "sale1");
+});
+
+test("card payment rejects installments other than one before contacting provider", async () => {
+  const f = fixture();
+  await assert.rejects(f.createCard({installments: 2}), {code: "invalid-argument"});
+  assert.equal(f.http.length, 0);
+  assert.equal(f.sale().paymentMethod, undefined);
 });
 
 test("card payment rejects missing token before contacting provider", async () => {

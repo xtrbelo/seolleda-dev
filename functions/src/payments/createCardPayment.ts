@@ -68,8 +68,8 @@ export const createCardPayment = onCall(
           paymentMethodId === "pix") {
         throw new HttpsError("invalid-argument", "Bandeira do cartão inválida.");
       }
-      if (!Number.isSafeInteger(installments) || installments < 1 || installments > 24) {
-        throw new HttpsError("invalid-argument", "Parcelamento inválido.");
+      if (installments !== 1) {
+        throw new HttpsError("invalid-argument", "O pagamento com cartão deve ser feito à vista.");
       }
       if (issuerId !== undefined &&
           (!Number.isSafeInteger(issuerId) || issuerId <= 0)) {
@@ -118,7 +118,7 @@ export const createCardPayment = onCall(
           cardPayerEmail: payerEmail,
           cardTotalCents: sale.totalCents,
           cardPaymentMethodId: paymentMethodId,
-          cardInstallments: installments,
+          cardInstallments: 1,
           paymentProvider: "MERCADO_PAGO",
           paymentMethod: "CARD",
           updatedAt: FieldValue.serverTimestamp(),
@@ -141,7 +141,6 @@ export const createCardPayment = onCall(
         token,
         paymentMethodId,
         ...(issuerId === undefined ? {} : {issuerId}),
-        installments,
         accessToken: accessToken.value(),
       });
       stage = "persist_payment";
