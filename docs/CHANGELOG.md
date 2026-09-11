@@ -9,7 +9,7 @@
 - O hotfix reutiliza `createCardPayment`; não cria Function, tarefa agendada, coleção ou índice.
 - Homologação manual confirmada em 10/09/2026 após a validação do site e do fluxo de cartão exclusivamente à vista.
 - Validação final em 10/09/2026: lint e build do frontend aprovados; sete testes de regras e 83 testes de negócio passaram sem falhas. O `diff-check` não encontrou erros e apresentou somente avisos de conversão LF/CRLF. Permanece a recomendação de desempenho do Vite para o pacote principal acima de 500 kB.
-- Publicação confirmada em `seolleda-dev` (HML): a Function `createCardPayment` e o Hosting foram atualizados com sucesso. O Hosting foi republicado isoladamente após corrigir a configuração local do build, e a versão 1W.1 foi confirmada no navegador.
+- Publicação confirmada em `seolleda-dev` (HML): a Function `createCardPayment` e o Hosting foram atualizados com sucesso. O Hosting foi republicado isoladamente após corrigir a configuração local do build, e a versão 1W.1 foi confirmada no navegador. Commit `d65f3d5`, merge `aad97a1` e tag `release-1w.1` confirmados.
 
 ## 1W — Expansão administrativa para múltiplas lojas — Homologada e publicada em HML
 
@@ -295,7 +295,7 @@ Validação anterior do estoque: cinco testes simulados de estoque e 17 testes P
 
 ## Próximas versões
 
-- Último hotfix: 1W.1 — cartão de crédito exclusivamente à vista, homologado e publicado em HML.
+- Último hotfix: 1W.1 — cartão de crédito exclusivamente à vista, homologado e publicado em HML; commit `d65f3d5`, merge `aad97a1` e tag `release-1w.1` confirmados.
 - Última versão funcional: 1W — múltiplas lojas, revisão visual e separação entre administrador master e administrador.
 - Hotfix anterior: 1V.1 — saneamento técnico dos avisos do frontend, homologado e publicado em HML; commit `1a2db9d` e tag `release-1v.1` confirmados.
 - Versão anterior: 1V — gestão administrativa de usuários e permissões, homologada e publicada em HML; commit `e23ea16` e tag `release-1v` confirmados.
