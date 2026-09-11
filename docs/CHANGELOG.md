@@ -1,5 +1,16 @@
 # Histórico de versões
 
+## 1W.1 — Cartão de crédito exclusivamente à vista — Homologada e publicada em HML
+
+- O checkout passa a identificar corretamente a opção como `Cartão de crédito à vista`, sem anunciar débito ou parcelamento.
+- O Card Payment Brick aceita somente cartão de crédito e oferece exclusivamente uma parcela; débito e cartões pré-pagos ficam explicitamente excluídos.
+- O frontend sempre envia uma parcela, o backend rejeita qualquer tentativa diferente de `1x` e a integração com o provedor fixa o pagamento em uma parcela.
+- Pix e as regras existentes de confirmação, idempotência, revisão de pagamentos e estoque permanecem inalterados.
+- O hotfix reutiliza `createCardPayment`; não cria Function, tarefa agendada, coleção ou índice.
+- Homologação manual confirmada em 10/09/2026 após a validação do site e do fluxo de cartão exclusivamente à vista.
+- Validação final em 10/09/2026: lint e build do frontend aprovados; sete testes de regras e 83 testes de negócio passaram sem falhas. O `diff-check` não encontrou erros e apresentou somente avisos de conversão LF/CRLF. Permanece a recomendação de desempenho do Vite para o pacote principal acima de 500 kB.
+- Publicação confirmada em `seolleda-dev` (HML): a Function `createCardPayment` e o Hosting foram atualizados com sucesso. O Hosting foi republicado isoladamente após corrigir a configuração local do build, e a versão 1W.1 foi confirmada no navegador.
+
 ## 1W — Expansão administrativa para múltiplas lojas — Homologada e publicada em HML
 
 - Configurações passa a cadastrar lojas com identificação automática, editar seus dados e controlar a situação ativa sem permitir exclusão.
@@ -284,7 +295,8 @@ Validação anterior do estoque: cinco testes simulados de estoque e 17 testes P
 
 ## Próximas versões
 
+- Último hotfix: 1W.1 — cartão de crédito exclusivamente à vista, homologado e publicado em HML.
 - Última versão funcional: 1W — múltiplas lojas, revisão visual e separação entre administrador master e administrador.
-- Último hotfix: 1V.1 — saneamento técnico dos avisos do frontend, homologado e publicado em HML; commit `1a2db9d` e tag `release-1v.1` confirmados.
+- Hotfix anterior: 1V.1 — saneamento técnico dos avisos do frontend, homologado e publicado em HML; commit `1a2db9d` e tag `release-1v.1` confirmados.
 - Versão anterior: 1V — gestão administrativa de usuários e permissões, homologada e publicada em HML; commit `e23ea16` e tag `release-1v` confirmados.
 - Versão anterior à 1V: 1U — fechamento financeiro e exportação de relatórios, homologada e publicada em HML; commit `e19c243` e tag `release-1u` confirmados.

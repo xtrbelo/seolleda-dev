@@ -200,7 +200,6 @@ export async function createMpCardPayment(params: {
   token: string;
   paymentMethodId: string;
   issuerId?: number;
-  installments: number;
   accessToken: string;
   idempotencyKey: string;
 }): Promise<MpPayment> {
@@ -217,7 +216,7 @@ export async function createMpCardPayment(params: {
       token: params.token,
       payment_method_id: params.paymentMethodId,
       ...(params.issuerId === undefined ? {} : {issuer_id: params.issuerId}),
-      installments: params.installments,
+      installments: 1,
       external_reference: params.saleId,
       metadata: {seolleda_payment_attempt: params.idempotencyKey},
       payer: {email: params.payerEmail},

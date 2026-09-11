@@ -17,8 +17,11 @@ type CreateCardPaymentRequest = {
   token: string;
   paymentMethodId: string;
   issuerId?: number;
-  installments: number;
   payerEmail?: string;
+};
+
+type CreateCardPaymentCallableRequest = CreateCardPaymentRequest & {
+  installments: 1;
 };
 
 export type CreatePixPaymentResponse = {
@@ -66,9 +69,9 @@ export async function createCardPayment(
   request: CreateCardPaymentRequest,
 ): Promise<CreateCardPaymentResponse> {
   const callable = httpsCallable<
-    CreateCardPaymentRequest,
+    CreateCardPaymentCallableRequest,
     CreateCardPaymentResponse
   >(functions, "createCardPayment");
-  const response = await callable(request);
+  const response = await callable({ ...request, installments: 1 });
   return response.data;
 }
